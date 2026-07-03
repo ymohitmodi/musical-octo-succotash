@@ -1,0 +1,51 @@
+# Runtime settings. Environment variables in ${VAR} form are expanded;
+# ${VAR:default} supplies a default when the variable is unset.
+
+fund:
+  capital_usd: ${FUND_CAPITAL_USD:1500000}
+  benchmark: SPY
+  timezone: ${FUND_TIMEZONE:America/New_York}
+
+llm:
+  host: ${OLLAMA_HOST:http://localhost:11434}
+  api_key: ${OLLAMA_API_KEY:}
+  # Fallback chain, strongest first. If a model errors/times out we degrade
+  # down the chain instead of failing the pipeline (dark-factory resilience).
+  models: ${OLLAMA_MODELS:deepseek-v3.1:671b-cloud,gpt-oss:120b-cloud,qwen3:32b,llama3.1:8b}
+  request_timeout_sec: 240
+  max_retries: 3
+
+data:
+  edgar_user_agent: ${EDGAR_USER_AGENT:DeepValueFund research bot change-me@example.com}
+  fred_api_key: ${FRED_API_KEY:}
+  cache_dir: data
+  # polite rate limits for free sources (requests/second)
+  edgar_rps: 5
+  market_rps: 2
+
+pipeline:
+  # How many screener survivors get the full multi-agent deep-dive per cycle.
+  deep_dive_batch: 4
+  # Minimum composite conviction (0-100) required to reach the PM.
+  min_conviction: 65
+  # Paper broker friction model
+  slippage_bps: 10
+  commission_per_trade: 0.0
+
+schedule:
+  # All times are fund-timezone (default America/New_York). The orchestrator
+  # runs 24/7; these define what it does in each window.
+  premarket_screen: "07:30"      # refresh universe screen daily
+  market_open: "09:30"
+  market_close: "16:00"
+  intraday_monitor_minutes: 20   # position/risk checks cadence while open
+  evening_deepdive: "18:00"      # multi-agent analysis of top candidates
+  nightly_evolution: "01:30"     # genome evolution + daily report
+  weekend_full_rescan: "10:00"   # Saturday: full universe rescan + self-audit
+
+evolution:
+  enabled: true
+  population_per_agent: 4
+  min_closed_decisions_for_fitness: 5
+  mutation_rate: 0.35
+  elite_keep: 1
