@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -82,7 +82,7 @@ class Scheduler:
     def _heartbeat(self, status: str) -> None:
         HEARTBEAT.parent.mkdir(parents=True, exist_ok=True)
         HEARTBEAT.write_text(json.dumps({"ts": time.time(), "status": status,
-                                         "iso": datetime.utcnow().isoformat()}))
+                                         "iso": datetime.now(timezone.utc).isoformat()}))
 
     def _run(self, name: str, fn, *args, **kwargs):
         """Fault isolation boundary: journal errors, never propagate."""

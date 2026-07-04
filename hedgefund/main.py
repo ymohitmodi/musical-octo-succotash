@@ -5,6 +5,7 @@
   python -m hedgefund.main screen     # run the quant screen only, print table
   python -m hedgefund.main report     # print current daily report
   python -m hedgefund.main status     # NAV, positions, health
+  python -m hedgefund.main doctor     # preflight: verify LLM, data, disk, DB
   python -m hedgefund.main dashboard [port]           # web dashboard (default 8787)
   python -m hedgefund.main backtest START [END] [N]   # screener backtest, e.g.
                                       # backtest 2016-01-01 2025-12-31 20
@@ -33,6 +34,10 @@ def main() -> None:
     _setup_logging()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
     cfg = Config.load()
+
+    if cmd == "doctor":
+        from .doctor import run_doctor
+        sys.exit(run_doctor(skip_llm="--skip-llm" in sys.argv))
 
     from .orchestrator import Pipeline, Scheduler
     pipeline = Pipeline(cfg)

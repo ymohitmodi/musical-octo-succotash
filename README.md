@@ -88,15 +88,20 @@ Then:
      GPU needed on the mini PC). Keep a small local model (e.g.
      `llama3.1:8b`) at the end of the chain as an offline last resort.
    - `FRED_API_KEY` (optional, free): enables the macro agent's data feed.
-2. **Smoke test** (no LLM needed — pure quant screen):
+2. **Preflight** — verifies Ollama, models, EDGAR, market data, FRED, disk,
+   DB and heartbeat, with a fix hint for anything broken:
+   ```powershell
+   .\.venv\Scripts\python.exe -m hedgefund.main doctor
+   ```
+3. **Smoke test** (no LLM needed — pure quant screen):
    ```powershell
    .\.venv\Scripts\python.exe -m hedgefund.main screen
    ```
-3. **One full research cycle** (uses the LLM committee):
+4. **One full research cycle** (uses the LLM committee):
    ```powershell
    .\.venv\Scripts\python.exe -m hedgefund.main once
    ```
-4. **Go 24/7** (registers a boot-time Task Scheduler task + watchdog;
+5. **Go 24/7** (registers a boot-time Task Scheduler task + watchdog;
    run as Administrator):
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\register_task.ps1
