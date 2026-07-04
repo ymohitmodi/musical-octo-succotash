@@ -53,7 +53,10 @@ class Screener:
                                      "top": [s["ticker"] for s in survivors[:10]]})
         return survivors
 
-    def screen_one(self, ticker: str, sector: str) -> dict | None:
+    def screen_one(self, ticker: str, sector: str, force: bool = False) -> dict | None:
+        """Score one ticker. `force=True` skips the composite-score floor (for
+        watchlist-triggered names the committee already endorsed) but never
+        skips the constitution's quality/liquidity gates."""
         snap = self.market.snapshot(ticker)
         if not snap:
             return None
@@ -84,7 +87,7 @@ class Screener:
         weights = {"valuation": self.genome["w_valuation"], "quality": self.genome["w_quality"],
                    "safety": self.genome["w_safety"], "contrarian": self.genome["w_contrarian"]}
         score = quant.composite_value_score(metrics, fscore, z, m, snap, weights)
-        if score < float(self.genome.get("min_composite", 55)):
+        if not force and score < float(self.genome.get("min_composite", 55)):
             return None
 
         record = {"ticker": ticker, "sector": sector, "score": score,

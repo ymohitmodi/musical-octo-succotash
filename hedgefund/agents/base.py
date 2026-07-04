@@ -13,12 +13,26 @@ import json
 import time
 from typing import Any
 
+from .. import doctrine
 from ..llm import LLMClient
 from ..storage import DB
 
 DISCLAIMER = ("You are one specialist on an autonomous investment committee "
               "running a PAPER-TRADING research fund. Be rigorous, cite the "
               "provided data only, and never fabricate numbers.")
+
+
+def recent_lessons(db: DB, limit: int = 5) -> str:
+    """Institutional memory: the latest post-mortem lessons, injected into
+    every analysis so the fund never re-learns the same tuition twice."""
+    rows = db.query(
+        "SELECT ticker, category, lesson FROM lessons ORDER BY ts DESC LIMIT ?",
+        (limit,))
+    if not rows:
+        return ""
+    lines = [f"- [{r['category']}/{r['ticker']}] {r['lesson']}" for r in rows]
+    return ("\n\n===== RECENT LESSONS FROM THE FUND'S OWN CLOSED POSITIONS "
+            "(do not repeat these mistakes) =====\n" + "\n".join(lines))
 
 
 def load_active_genome(db: DB, agent_name: str, defaults: dict) -> tuple[int, dict]:
@@ -52,7 +66,9 @@ class BaseAgent:
                 "Weigh evidence impartially; require a clear margin of safety."
                 if skept > 0.33 else
                 "Look actively for overlooked upside, but never ignore red flags.")
-        return f"{DISCLAIMER}\n\nROLE: {self.role}\nDISPOSITION: {tone}"
+        return (f"{DISCLAIMER}\n\nROLE: {self.role}\nDISPOSITION: {tone}"
+                + doctrine.for_agent(self.name)
+                + recent_lessons(self.db))
 
     def analyze(self, ticker: str, dossier: dict) -> dict:
         """Run the LLM analysis and journal it. Returns the structured report."""

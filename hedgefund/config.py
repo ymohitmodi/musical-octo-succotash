@@ -99,6 +99,13 @@ class Config:
         return [m.strip() for m in str(raw).split(",") if m.strip()]
 
     @property
+    def checklist(self) -> list[dict]:
+        try:
+            return load_yaml("checklist.yaml").get("items", [])
+        except FileNotFoundError:
+            return []
+
+    @property
     def data_dir(self) -> Path:
         d = ROOT / str(self.settings["data"].get("cache_dir", "data"))
         d.mkdir(parents=True, exist_ok=True)

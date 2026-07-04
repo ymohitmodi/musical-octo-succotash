@@ -38,6 +38,10 @@ class FakeLLM:
 
     def __init__(self):
         self.forensic_verdict = "bullish"
+        self.pm_action = "buy"
+        self.target_entry = None
+        self.survivable = True
+        self.checklist_pass = True
         self.calls = 0
 
     def chat(self, messages, **kw):
@@ -48,11 +52,26 @@ class FakeLLM:
 
     def chat_json(self, system: str, user: str, **kw) -> dict:
         self.calls += 1
+        if "PRE-BUY CHECKLIST" in system:
+            import re
+            ids = re.findall(r"\[(CL\d+\w*)\]", user)
+            ans = "pass" if self.checklist_pass else "fail"
+            return {"answers": {i: {"answer": ans, "evidence": "per committee data"}
+                                for i in ids}}
+        if "mandatory pre-mortem" in system:
+            return {"failure_causes": [
+                        {"cause": "margin collapse", "probability": "medium",
+                         "kill_criterion": "two quarters of gross margin < 30%"}],
+                    "survivable": self.survivable, "reasoning": "sized modestly"}
+        if "post-mortem" in system:
+            return {"category": "thesis",
+                    "lesson": "Do not trust peak-cycle margins in commodity businesses."}
         if "CONSTITUTIONAL CRITIC" in system:
             return {"approved": True, "revised_weight": None, "violations": [],
                     "reasoning": "complies with all principles"}
         if "Portfolio manager of a deep-value fund" in system:
-            return {"action": "buy", "conviction": 82, "target_weight": 0.03,
+            return {"action": self.pm_action, "conviction": 82, "target_weight": 0.03,
+                    "target_entry": self.target_entry,
                     "thesis": "Simple business trading far below intrinsic value.",
                     "invalidation_triggers": ["margin collapse"]}
         if "Macro strategist" in system:
@@ -73,6 +92,7 @@ class FakeMarket:
 
     def __init__(self):
         self.prices = {"TEST": 20.0, "SPY": 500.0}
+        self.snap_off_high = -0.375
 
     def last_price(self, ticker):
         return self.prices.get(ticker)
@@ -83,7 +103,8 @@ class FakeMarket:
             return None
         return {"ticker": ticker, "price": p, "adv_shares": 4_000_000,
                 "adv_dollars": 4_000_000 * p, "year_high": p * 1.6, "year_low": p * 0.9,
-                "pct_off_high": -0.375, "ret_6m": -0.2, "ret_1y": -0.3, "ann_vol": 0.3}
+                "pct_off_high": self.snap_off_high, "ret_6m": -0.2, "ret_1y": -0.3,
+                "ann_vol": 0.3}
 
     def daily_bars(self, ticker, days=260):
         p = self.prices.get(ticker, 0)
@@ -128,6 +149,8 @@ def build_pipeline(tmpdir: str) -> tuple[Pipeline, FakeLLM, FakeMarket]:
     pipe.broker.market = fake_mkt
     pipe.screener.edgar = fake_edgar
     pipe.screener.market = fake_mkt
+    pipe.prospector.edgar = fake_edgar
+    pipe.prospector.market = fake_mkt
     pipe.constitution.llm = fake_llm
     pipe.pm.llm = fake_llm
     pipe.macro_agent.llm = fake_llm
@@ -175,6 +198,11 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(summary2["buys"], [])
         self.assertEqual(len(pipe.broker.positions()), 1)
 
+        # decision memo carries the full paper trail: pre-mortem + checklist
+        self.assertTrue(review["premortem"]["survivable"])
+        self.assertTrue(review["checklist"]["passed"])
+        self.assertIn("CL2_MARGIN", review["checklist"]["answers"])
+
         # 2 ---- monitor: mark-to-market then stop-loss on a 30% drop
         pipe.monitor_cycle()
         self.assertGreater(len(db.query("SELECT * FROM nav_history")), 0)
@@ -182,6 +210,12 @@ class TestEndToEnd(unittest.TestCase):
         out = pipe.monitor_cycle()
         self.assertEqual(len(out["stop_exits"]), 1)
         self.assertEqual(pipe.broker.positions(), [])
+        # the exit produced a post-mortem lesson (institutional memory)...
+        lessons = db.query("SELECT * FROM lessons")
+        self.assertEqual(len(lessons), 1)
+        self.assertIn("peak-cycle margins", lessons[0]["lesson"])
+        # ...which is injected into every future analyst prompt
+        self.assertIn("peak-cycle margins", pipe.analysts[0].system_prompt())
         self.assertEqual(db.query("SELECT status FROM decisions WHERE action='buy'")[0]["status"],
                          "closed")
         nav2, cash2, _ = pipe.broker.nav()
@@ -223,6 +257,58 @@ class TestEndToEnd(unittest.TestCase):
         self.assertEqual(self.pipe.broker.positions(), [])
         vetoes = self.pipe.db.query("SELECT * FROM events WHERE kind='veto'")
         self.assertTrue(any("forensic" in r["payload"] for r in vetoes))
+
+    def test_doctrine_reaches_every_agent_prompt(self):
+        # the encoded teaching must actually be in front of the models
+        for agent in self.pipe.analysts:
+            self.assertIn("FUND DOCTRINE", agent.system_prompt())
+        self.assertIn("margin of safety", self.pipe.analysts[0].system_prompt().lower())
+
+    def test_watch_then_stalk_then_buy(self):
+        # PM endorses the business but not the price -> watchlist with target
+        self.llm.pm_action = "watch"
+        self.llm.target_entry = 15.0
+        summary = self.pipe.research_cycle()
+        self.assertEqual(summary["buys"], [])
+        row = self.pipe.db.query("SELECT * FROM watchlist")[0]
+        self.assertEqual(row["ticker"], "TEST")
+        self.assertEqual(row["target_entry"], 15.0)
+        # price stays above target: nothing triggers
+        self.pipe.monitor_cycle()
+        self.assertEqual(self.pipe.db.query(
+            "SELECT * FROM watchlist WHERE triggered=1"), [])
+        # Mr. Market finally quotes the committee's price
+        self.mkt.prices["TEST"] = 14.5
+        out = self.pipe.monitor_cycle()
+        self.assertEqual(out["watchlist_triggers"], ["TEST"])
+        # next research cycle: the triggered name jumps the queue and is bought
+        self.llm.pm_action = "buy"
+        summary2 = self.pipe.research_cycle()
+        self.assertEqual(summary2["buys"], ["TEST"])
+        self.assertEqual(self.pipe.db.query("SELECT * FROM watchlist"), [])
+
+    def test_checklist_failure_vetoes_buy(self):
+        self.llm.checklist_pass = False
+        summary = self.pipe.research_cycle()
+        self.assertEqual(summary["buys"], [])
+        vetoes = self.pipe.db.query(
+            "SELECT payload FROM events WHERE kind='veto'")
+        self.assertTrue(any("checklist" in r["payload"] for r in vetoes))
+
+    def test_premortem_unsurvivable_vetoes_buy(self):
+        self.llm.survivable = False
+        summary = self.pipe.research_cycle()
+        self.assertEqual(summary["buys"], [])
+        vetoes = self.pipe.db.query("SELECT payload FROM events WHERE kind='veto'")
+        self.assertTrue(any("premortem" in r["payload"] for r in vetoes))
+
+    def test_prospector_channel_feeds_leads(self):
+        self.mkt.snap_off_high = -0.55          # deep-drawdown territory
+        out = self.pipe.explore("deep_drawdown")
+        self.assertEqual(out["raw_leads"], 1)
+        leads = self.pipe.prospector.fresh_lead_candidates()
+        self.assertEqual(leads[0]["ticker"], "TEST")
+        self.assertIsNotNone(leads[0]["score"])
 
     def test_drawdown_breaker_blocks_all_buying(self):
         # simulate a fund already 20% off peak: breaker must veto the buy

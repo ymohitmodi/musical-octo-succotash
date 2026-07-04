@@ -118,6 +118,22 @@
 
 <div class="grid2">
   <div class="card">
+    <h2>Watchlist — stalking a price</h2>
+    <div id="watchlist"></div>
+  </div>
+  <div class="card">
+    <h2>Exploration leads (overnight prospecting)</h2>
+    <div id="leads"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Institutional memory — post-mortem lessons</h2>
+  <ul class="feed" id="lessons"></ul>
+</div>
+
+<div class="grid2">
+  <div class="card">
     <h2>Agent genomes (evolution)</h2>
     <div id="genomes"></div>
   </div>
@@ -177,6 +193,9 @@ async function refresh() {
   renderDecisions(d.decisions || []);
   renderEvents(d.events || []);
   renderGenomes(d.genomes || []);
+  renderWatchlist(d.watchlist || []);
+  renderLeads(d.leads || []);
+  renderLessons(d.lessons || []);
   renderBacktest(d.backtest);
 }
 
@@ -236,11 +255,18 @@ function drawChart(hist) {
   };
   g += path("bench", "var(--series-2)");
   g += path("fund", "var(--series-1)");
-  // direct labels at line ends
+  // direct labels at line ends (nudged apart when the lines converge)
   const lastS = series[series.length - 1];
-  g += `<text x="${W - m.r + 6}" y="${y(lastS.fund) + 4}" font-size="11" fill="var(--ink-2)">Fund</text>`;
-  if (lastS.bench != null)
-    g += `<text x="${W - m.r + 6}" y="${y(lastS.bench) + 4}" font-size="11" fill="var(--ink-2)">SPY</text>`;
+  let yF = y(lastS.fund) + 4;
+  let yB = lastS.bench != null ? y(lastS.bench) + 4 : null;
+  if (yB != null && Math.abs(yF - yB) < 13) {
+    const mid = (yF + yB) / 2;
+    yF = mid + (yF <= yB ? -7 : 7);
+    yB = mid + (yF <= yB ? 7 : -7);
+  }
+  g += `<text x="${W - m.r + 6}" y="${yF}" font-size="11" fill="var(--ink-2)">Fund</text>`;
+  if (yB != null)
+    g += `<text x="${W - m.r + 6}" y="${yB}" font-size="11" fill="var(--ink-2)">SPY</text>`;
   g += `<line id="xhair" y1="${m.t}" y2="${H - m.b}" stroke="var(--axis)" stroke-width="1" visibility="hidden"/>
         <circle id="dotF" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2" visibility="hidden"/>
         <circle id="dotB" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2" visibility="hidden"/>
@@ -311,6 +337,31 @@ function renderGenomes(gs) {
       <td>${x.fitness == null ? "—" : (x.fitness >= 0 ? '<span class="up">' : '<span class="down">') + fmtPct(x.fitness, true) + "</span>"}</td>
       <td>${x.active ? "●" : ""}</td><td>${fmtTs(x.created_ts)}</td></tr>`).join("") +
     "</tbody></table>";
+}
+function renderWatchlist(ws) {
+  if (!ws.length) { $("watchlist").innerHTML = `<div class="empty">Empty — the committee adds names it likes at prices it doesn't.</div>`; return; }
+  $("watchlist").innerHTML = `<table><thead><tr>
+    <th>Ticker</th><th>Target entry</th><th>Status</th><th>Thesis</th></tr></thead><tbody>` +
+    ws.map(w => `<tr><td><strong>${esc(w.ticker)}</strong></td>
+      <td>$${Number(w.target_entry).toFixed(2)}</td>
+      <td>${w.triggered ? '<span class="badge buy">triggered</span>' : '<span class="badge">stalking</span>'}</td>
+      <td class="thesis" title="${esc(w.thesis)}">${esc(w.thesis)}</td></tr>`).join("") +
+    "</tbody></table>";
+}
+function renderLeads(ls) {
+  if (!ls.length) { $("leads").innerHTML = `<div class="empty">The Prospector runs a channel every 2h outside market hours.</div>`; return; }
+  $("leads").innerHTML = `<table><thead><tr>
+    <th>Ticker</th><th>Channel</th><th>Score</th><th>Why</th></tr></thead><tbody>` +
+    ls.map(x => `<tr><td><strong>${esc(x.ticker)}</strong></td><td>${esc(x.source)}</td>
+      <td>${x.score == null ? "—" : Number(x.score).toFixed(0)}</td>
+      <td class="thesis" title="${esc(x.note)}">${esc(x.note || "")}</td></tr>`).join("") +
+    "</tbody></table>";
+}
+function renderLessons(ls) {
+  $("lessons").innerHTML = ls.length ? ls.map(l =>
+    `<li><time>${fmtTs(l.ts)}</time><span class="kind">${esc(l.category)}</span>` +
+    `<strong>${esc(l.ticker)}</strong> (${fmtPct(l.outcome_pct, true)}) — ${esc(l.lesson)}</li>`).join("")
+    : `<li class="empty">Lessons appear when positions close; they are injected into every future analysis.</li>`;
 }
 function renderBacktest(s) {
   if (!s) { $("backtest").innerHTML = `<div class="empty">Run <code>python -m hedgefund.main backtest 2016-01-01</code> to populate.</div>`; return; }

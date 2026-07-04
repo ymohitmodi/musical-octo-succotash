@@ -46,6 +46,15 @@ def _summary(db: DB) -> dict:
     genomes = [dict(r) for r in db.query(
         "SELECT agent, generation, fitness, active, created_ts FROM genomes "
         "ORDER BY created_ts DESC LIMIT 40")]
+    watchlist = [dict(r) for r in db.query(
+        "SELECT ticker, target_entry, thesis, source, triggered, added_ts "
+        "FROM watchlist ORDER BY added_ts DESC LIMIT 20")]
+    lessons = [dict(r) for r in db.query(
+        "SELECT ts, ticker, category, outcome_pct, lesson FROM lessons "
+        "ORDER BY ts DESC LIMIT 15")]
+    leads = [dict(r) for r in db.query(
+        "SELECT ts, ticker, source, note, score FROM leads "
+        "WHERE score IS NOT NULL ORDER BY ts DESC LIMIT 15")]
     heartbeat = None
     if HEARTBEAT.exists():
         try:
@@ -70,6 +79,9 @@ def _summary(db: DB) -> dict:
         "trades": trades,
         "events": events,
         "genomes": genomes,
+        "watchlist": watchlist,
+        "lessons": lessons,
+        "leads": leads,
         "heartbeat": heartbeat,
         "backtest": backtest,
     }

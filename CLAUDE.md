@@ -13,7 +13,7 @@ python -m hedgefund.main run         # 24/7 loop (production; started by Task Sc
 python -m hedgefund.main status      # NAV, positions, LLM health
 python -m hedgefund.main dashboard   # read-only web UI on :8787
 python -m hedgefund.main backtest 2016-01-01   # screener backtest
-python -m unittest discover tests    # 27 offline tests; must pass before commit
+python -m unittest discover tests    # offline test suite; must pass before commit
 ```
 
 On Windows use `.venv\Scripts\python.exe`. The 24/7 engine runs as Task
@@ -23,13 +23,18 @@ Scheduler task `AIHedgeFund` via `scripts/run_forever.ps1` (watchdog).
 
 `orchestrator/scheduler.py` runs timed jobs that call
 `orchestrator/pipeline.py`: quant screener (`agents/screener.py`, pure math
-from `quant.py`) picks candidates → LLM committee (`agents/`: fundamental,
-forensic, moat, bear + macro) analyzes a dossier built from `data/` (EDGAR
-XBRL, Yahoo/Stooq prices, RSS) → PM synthesizes believability-weighted votes
-→ `constitution/engine.py` reviews (LLM critique, then deterministic hard
-limits — the final authority) → `portfolio/paper_broker.py` executes on
-paper → nightly `evolution/evolver.py` breeds agent genomes on realized P&L.
-Everything journals to SQLite (`storage/db.py`, single file `data/fund.db`).
+from `quant.py`) + overnight Prospector channels (`agents/prospector.py`,
+rotating idea hunts every 2h off-hours) pick candidates → LLM committee
+(`agents/`: fundamental, forensic, moat, bear + macro — each agent's prompt
+embeds `doctrine/*.md` playbooks and recent post-mortem lessons) analyzes a
+dossier built from `data/` (EDGAR XBRL, Yahoo/Stooq prices, RSS) → PM
+synthesizes believability-weighted votes into buy / **watch** (watchlist
+with target entry, stalked intraday) / reject → buy path runs pre-mortem →
+enforced checklist (`config/checklist.yaml`) → `constitution/engine.py`
+critique, then deterministic hard limits (the final authority) →
+`portfolio/paper_broker.py` executes on paper → exits get post-mortems whose
+lessons feed future prompts → nightly `evolution/evolver.py` breeds agent
+genomes on realized P&L. Everything journals to SQLite (`storage/db.py`).
 
 ## Invariants — do not break
 
@@ -52,7 +57,16 @@ Everything journals to SQLite (`storage/db.py`, single file `data/fund.db`).
 
 `.claude/skills/` ships: `fund-status` (briefing), `fund-deep-dive`
 (research a ticker), `fund-doctor` (diagnose 24/7 issues), `fund-tune`
-(safe config changes). Prefer these workflows over improvising.
+(safe config changes), `fund-playbook` (read/evolve the doctrine and
+checklist). Prefer these workflows over improvising.
+
+## Doctrine — the encoded teaching
+
+`hedgefund/doctrine/*.md` is the fund's investment curriculum; agents embed
+it in every prompt via `doctrine.for_agent()`. Hand-edited only. Post-mortem
+lessons (`lessons` table) are auto-injected institutional memory. Doctrine
+edits go through the `fund-playbook` skill rules: decision-relevant,
+imperative, never weakening the safety floors.
 
 ## Testing conventions
 

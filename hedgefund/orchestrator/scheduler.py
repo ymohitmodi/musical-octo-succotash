@@ -45,8 +45,11 @@ class Scheduler:
         self.t_night = self._hm(sch["nightly_evolution"])
         self.t_weekend = self._hm(sch["weekend_full_rescan"])
         self.monitor_every = int(sch["intraday_monitor_minutes"]) * 60
+        self.explore_every = float(sch.get("exploration_hours_between", 2)) * 3600
         self._done: dict[str, str] = {}   # job -> date string, idempotency guard
         self._last_monitor = 0.0
+        self._last_explore = 0.0
+        self._channel_idx = 0
 
     @staticmethod
     def _hm(s: str) -> tuple[int, int]:
@@ -121,6 +124,15 @@ class Scheduler:
 
                 if self._due_daily("weekend", self.t_weekend, now, weekday=5):
                     self._run("weekend_rescan", self.p.research_cycle, weekend=True)
+
+                # 24/7 exploration: while the market sleeps, the fund hunts.
+                if not self._market_open(now) and \
+                        time.time() - self._last_explore > self.explore_every:
+                    self._last_explore = time.time()
+                    from ..agents.prospector import CHANNELS
+                    channel = CHANNELS[self._channel_idx % len(CHANNELS)]
+                    self._channel_idx += 1
+                    self._run(f"explore:{channel}", self.p.explore, channel)
             except Exception as e:  # noqa: BLE001 - belt never stops
                 log.exception("scheduler loop error")
                 self.p.db.log_event("error", {"stage": "scheduler", "error": str(e)})

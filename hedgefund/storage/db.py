@@ -93,6 +93,32 @@ CREATE TABLE IF NOT EXISTS genomes (               -- evolving agent parameter s
     fitness REAL,
     created_ts REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS leads (                 -- 24/7 exploration output
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    ticker TEXT NOT NULL,
+    source TEXT NOT NULL,                          -- exploration channel name
+    note TEXT,
+    score REAL                                     -- screener composite, when scored
+);
+CREATE TABLE IF NOT EXISTS watchlist (             -- quality names stalking a price
+    ticker TEXT PRIMARY KEY,
+    added_ts REAL NOT NULL,
+    target_entry REAL NOT NULL,                    -- committee-set trigger price
+    thesis TEXT NOT NULL,
+    source TEXT,
+    sector TEXT,
+    triggered INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS lessons (               -- institutional memory (post-mortems)
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    ticker TEXT NOT NULL,
+    decision_id INTEGER,
+    outcome_pct REAL,
+    category TEXT NOT NULL,                        -- process | thesis | timing | luck
+    lesson TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS fund_state (            -- single-row operational state
     id INTEGER PRIMARY KEY CHECK (id = 1),
     cash REAL NOT NULL,

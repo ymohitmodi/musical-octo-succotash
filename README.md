@@ -5,11 +5,15 @@ system** for a Windows 11 mini PC. It runs on **Ollama cloud models**, uses
 **only free data sources** (SEC EDGAR, Yahoo/Stooq, FRED, RSS), and applies
 three modern agentic-AI practices end to end:
 
-| Practice | How it's implemented here |
+| Practice of world-class small funds | How it's made agentic here |
 |---|---|
-| **Dark factory** | Lights-out pipeline: screen → dossier → committee debate → PM decision → constitutional review → execution → learning. Every stage is fault-isolated and journaled; a Task Scheduler watchdog restarts anything that dies. No human in the loop — humans read the daily report. |
-| **Constitutional AI** | A written constitution (`config/constitution.yaml`) enforced twice: an LLM critic reviews every decision against 10 principles and can veto, then deterministic **hard limits in code** (position caps, sector caps, cash floor, drawdown breakers, liquidity floors) run last and cannot be overridden by any model output. Fails **closed**: if the critic is unreachable, nothing gets approved. |
-| **Evolving agents** | Each agent carries a "genome" of numeric parameters (skepticism, thresholds, weights, temperature). Nightly, genomes are scored on realized paper-trade excess returns vs SPY and bred (elitism + bounded mutation) with full lineage in the DB. Only parameters evolve — never code, prompts' safety text, or the constitution. |
+| **Written doctrine** — great shops run on teachable, written investment philosophy (owner earnings, margin of safety, inversion, second-level thinking), not individual brilliance | `hedgefund/doctrine/*.md`: six discipline playbooks the agents **literally read in their prompts** before every analysis — valuation, forensic, moats, cycles, portfolio, process. Hand-edited only; evolution and LLMs can never rewrite the teaching. |
+| **Dark factory** | Lights-out pipeline: screen → dossier → committee debate → PM decision → pre-mortem → checklist → constitutional review → execution → learning. Every stage is fault-isolated and journaled; a Task Scheduler watchdog restarts anything that dies. |
+| **Relentless idea sourcing** — top funds run standing hunts (52-week-low lists, insider clusters, spinoffs), not a static screen | The **Prospector** rotates through 5 exploration channels every 2h outside market hours, 24/7: deep drawdowns, Graham net-nets, crash-with-improving-quality, insider Form-4 clusters, Form-10 spinoffs. Leads are quant-scored into the deep-dive queue. |
+| **Patience via watchlist** — "wonderful business, wrong price" gets stalked for months | The PM can rule **watch** instead of buy/reject: the name enters a watchlist with a committee-set target entry price, monitored every intraday cycle; when Mr. Market finally quotes the price, it jumps the research queue. |
+| **Checklist + pre-mortem before capital moves** (Munger/Klarman practice) | A 10-item pre-buy checklist (`config/checklist.yaml`) answered item-by-item with evidence — **any failed critical item is a machine-enforced reject** — plus a mandatory pre-mortem ("it's 2 years later and this lost 40%: what killed it?") with kill-criteria attached to the memo. |
+| **Constitutional AI** | A written constitution enforced twice: an LLM critic reviews every decision against 10 principles and can veto, then deterministic **hard limits in code** (position caps, sector caps, cash floor, drawdown breakers, liquidity floors) run last and cannot be overridden by any model output. Fails **closed**. |
+| **Post-mortems that compound** — pain + reflection = progress | Every closed position gets a written post-mortem judging **process, not outcome**; its one-sentence lesson is stored and **injected into every future agent prompt** — institutional memory that compounds in prose, alongside numeric genome evolution on realized P&L. |
 | **Idea meritocracy** (Bridgewater-style) | Believability-weighted voting: analysts' votes are weighted by their track record. A dedicated **bear agent** is rewarded for killing bad ideas. Radical transparency: every thesis is journaled before the outcome is known and never edited. |
 
 > ## ⚠️ Read this first
@@ -189,12 +193,15 @@ dashboard's backtest panel.
 ## Repo map
 
 ```
-config/           constitution.yaml · settings.yaml · universe.yaml
+config/           constitution.yaml · checklist.yaml · settings.yaml · universe.yaml
 hedgefund/
+  doctrine/       the encoded teaching: valuation · forensic · moats · cycles ·
+                  portfolio · process (agents read these in every prompt)
   quant.py        Graham/Greenblatt/Piotroski/Altman/Beneish math (pure, tested)
   data/           edgar.py · market.py · macro.py · news.py · http.py
-  agents/         screener · fundamental · forensic · moat · bear · macro · PM
-  constitution/   two-layer enforcement engine
+  agents/         screener · prospector (24/7 idea channels) · fundamental ·
+                  forensic · moat · bear · macro · PM (watch/pre/post-mortem)
+  constitution/   two-layer enforcement engine + enforced pre-buy checklist
   portfolio/      paper broker (fills, stops, NAV)
   evolution/      genome breeding on realized P&L
   orchestrator/   pipeline.py (the factory line) · scheduler.py (24/7 shifts)

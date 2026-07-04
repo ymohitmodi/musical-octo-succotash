@@ -21,11 +21,64 @@ log = logging.getLogger("hedgefund.constitution")
 
 
 class ConstitutionEngine:
-    def __init__(self, llm: LLMClient, db: DB, constitution: dict):
+    def __init__(self, llm: LLMClient, db: DB, constitution: dict,
+                 checklist: list[dict] | None = None):
         self.llm = llm
         self.db = db
         self.limits = constitution["hard_limits"]
         self.principles = constitution["principles"]
+        self.checklist = checklist or []
+
+    # -------------------------------------------- pre-buy checklist (enforced)
+    def run_checklist(self, ticker: str, decision: dict, dossier: dict,
+                      premortem: dict) -> dict:
+        """Munger-style pre-buy checklist. Every item answered with evidence;
+        deterministic enforcement: any critical item not 'pass' => reject.
+        Returns {passed: bool, answers: {...}, failed: [ids]}."""
+        if not self.checklist:
+            return {"passed": True, "answers": {}, "failed": []}
+        items_text = "\n".join(f"[{i['id']}]{' (CRITICAL)' if i.get('critical') else ''} "
+                               f"{i['question'].strip()}" for i in self.checklist)
+        try:
+            out = self.llm.chat_json(
+                system=("You are administering the fund's mandatory PRE-BUY CHECKLIST "
+                        "— the distillation of every previous disaster. Answer each "
+                        "item strictly from the evidence provided. An item you cannot "
+                        "support with evidence is 'fail', not 'unknown-but-probably-"
+                        "fine'. Pilots run the checklist every flight; so do you."),
+                user=f"""CHECKLIST ITEMS:
+{items_text}
+
+CANDIDATE: {ticker}
+PROPOSED DECISION: {json.dumps({k: decision.get(k) for k in
+    ('action', 'conviction', 'target_weight', 'thesis',
+     'invalidation_triggers')}, default=str)}
+COMMITTEE REPORTS: {json.dumps(decision.get('committee', {}), default=str)[:6000]}
+METRICS: {json.dumps(dossier.get('metrics', {}), default=str)}
+FORENSIC SCORES: Z={dossier.get('altman_z')} M={dossier.get('beneish_m')} F={dossier.get('f_score', {}).get('f_score')}
+PRE-MORTEM: {json.dumps(premortem, default=str)}
+
+Answer every item.""",
+                schema_hint=('{"answers": {"CL1_UNDERSTAND": {"answer": "pass|fail", '
+                             '"evidence": "..."}, ...}}'),
+                temperature=0.15,
+            )
+        except Exception as e:  # noqa: BLE001 - fail closed
+            log.error("checklist unavailable, failing closed: %s", e)
+            return {"passed": False, "answers": {},
+                    "failed": ["SYSTEM"], "error": str(e)}
+        answers = out.get("answers", {})
+        failed = []
+        for item in self.checklist:
+            if not item.get("critical"):
+                continue
+            ans = answers.get(item["id"], {})
+            if str(ans.get("answer", "fail")).lower() != "pass":
+                failed.append(item["id"])
+        result = {"passed": not failed, "answers": answers, "failed": failed}
+        if failed:
+            self.db.log_event("veto", {"layer": "checklist", "failed": failed}, ticker)
+        return result
 
     # ------------------------------------------------- layer 2: LLM critique
     def critique(self, ticker: str, decision: dict, dossier: dict) -> dict:

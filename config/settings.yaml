@@ -42,6 +42,10 @@ schedule:
   evening_deepdive: "18:00"      # multi-agent analysis of top candidates
   nightly_evolution: "01:30"     # genome evolution + daily report
   weekend_full_rescan: "10:00"   # Saturday: full universe rescan + self-audit
+  # 24/7 exploration: outside market hours, the Prospector runs one idea-
+  # sourcing channel (52w-lows, net-nets, crash-with-quality, insider
+  # clusters, spinoffs) every N hours, rotating through all channels.
+  exploration_hours_between: 2
 
 evolution:
   enabled: true
