@@ -73,10 +73,15 @@ class MarketData:
     def _stooq_bars(self, ticker: str, days: int) -> list[dict] | None:
         try:
             resp = self.http.get(STOOQ_URL, params={"s": f"{ticker.lower()}.us", "i": "d"})
-            rows = list(csv.DictReader(io.StringIO(resp.text)))
-            bars = [{"date": r["Date"], "open": float(r["Open"]), "high": float(r["High"]),
-                     "low": float(r["Low"]), "close": float(r["Close"]),
-                     "volume": float(r.get("Volume") or 0)} for r in rows if r.get("Close")]
+            bars = []
+            for r in csv.DictReader(io.StringIO(resp.text)):
+                try:  # skip malformed rows ('-' volume, 'No data', blanks) not the file
+                    bars.append({"date": r["Date"], "open": float(r["Open"]),
+                                 "high": float(r["High"]), "low": float(r["Low"]),
+                                 "close": float(r["Close"]),
+                                 "volume": float(r.get("Volume") or 0)})
+                except (ValueError, TypeError, KeyError):
+                    continue
             return bars[-days:] if bars else None
         except Exception as e:  # noqa: BLE001
             log.warning("stooq bars failed for %s: %s", ticker, e)

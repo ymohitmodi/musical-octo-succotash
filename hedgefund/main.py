@@ -6,6 +6,8 @@
   python -m hedgefund.main report     # print current daily report
   python -m hedgefund.main status     # NAV, positions, health
   python -m hedgefund.main doctor     # preflight: verify LLM, data, disk, DB
+  python -m hedgefund.main validate [TICKER]          # live end-to-end check of
+                                      # every data integration (format+throttle)
   python -m hedgefund.main dashboard [port]           # web dashboard (default 8787)
   python -m hedgefund.main backtest START [END] [N]   # screener backtest, e.g.
                                       # backtest 2016-01-01 2025-12-31 20
@@ -38,6 +40,11 @@ def main() -> None:
     if cmd == "doctor":
         from .doctor import run_doctor
         sys.exit(run_doctor(skip_llm="--skip-llm" in sys.argv))
+
+    if cmd == "validate":
+        from .validate import run_validation
+        args = [a for a in sys.argv[2:] if not a.startswith("-")]
+        sys.exit(run_validation(ticker=args[0].upper() if args else "INTC"))
 
     from .orchestrator import Pipeline, Scheduler
     pipeline = Pipeline(cfg)

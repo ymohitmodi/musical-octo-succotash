@@ -72,40 +72,31 @@ history, genome lineage, errors, and vetoes.
 **Prerequisites:** [Python 3.11+](https://www.python.org/downloads/) (check
 "Add to PATH") and [Ollama for Windows](https://ollama.com/download/windows).
 
+**One command sets up everything** — installs Python and Ollama via winget
+if missing, creates the venv, installs dependencies, writes `.env` with your
+SEC contact email, runs the 40-test offline suite, live-validates every data
+integration, runs the doctor preflight, and (with `-Full`, as Administrator)
+pulls your models and registers the 24/7 task:
+
 ```powershell
 git clone https://github.com/ymohitmodi/musical-octo-succotash.git
 cd musical-octo-succotash
-powershell -ExecutionPolicy Bypass -File scripts\install_windows.ps1
+powershell -ExecutionPolicy Bypass -File scripts\install_windows.ps1 -Email you@example.com -Full
 ```
 
-Then:
+(Without `-Full` it stops after validation so you can smoke-test manually.
+`ollama signin` once beforehand if you use cloud models. Linux/macOS dev:
+`./scripts/setup.sh you@example.com`.)
 
-1. **Edit `.env`** —
-   - `EDGAR_USER_AGENT`: must include **your email** (SEC's fair-access rule).
-   - `OLLAMA_MODELS`: your model chain, strongest first. With an Ollama
-     cloud subscription: `ollama signin`, then
-     `ollama pull deepseek-v3.1:671b-cloud` (runs via your local daemon, no
-     GPU needed on the mini PC). Keep a small local model (e.g.
-     `llama3.1:8b`) at the end of the chain as an offline last resort.
-   - `FRED_API_KEY` (optional, free): enables the macro agent's data feed.
-2. **Preflight** — verifies Ollama, models, EDGAR, market data, FRED, disk,
-   DB and heartbeat, with a fix hint for anything broken:
-   ```powershell
-   .\.venv\Scripts\python.exe -m hedgefund.main doctor
-   ```
-3. **Smoke test** (no LLM needed — pure quant screen):
-   ```powershell
-   .\.venv\Scripts\python.exe -m hedgefund.main screen
-   ```
-4. **One full research cycle** (uses the LLM committee):
-   ```powershell
-   .\.venv\Scripts\python.exe -m hedgefund.main once
-   ```
-5. **Go 24/7** (registers a boot-time Task Scheduler task + watchdog;
-   run as Administrator):
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\register_task.ps1
-   ```
+Useful commands after setup:
+
+```powershell
+.\.venv\Scripts\python.exe -m hedgefund.main validate   # live end-to-end check of every data integration
+.\.venv\Scripts\python.exe -m hedgefund.main doctor     # Ollama + runtime preflight
+.\.venv\Scripts\python.exe -m hedgefund.main screen     # quant screen (no LLM needed)
+.\.venv\Scripts\python.exe -m hedgefund.main once       # one full research cycle
+powershell -File scripts\register_task.ps1              # go 24/7 (as Administrator)
+```
 
 Daily output lands in `reports/daily_YYYYMMDD.md`; logs in
 `logs/hedgefund.log`; check live state anytime with
@@ -182,7 +173,13 @@ dashboard's backtest panel.
   failures (quorum rule), but the **forensic agent is mandatory** — no
   clearance, no trade (fail-closed).
 - **Data**: dual price sources (Yahoo ⇄ Stooq), SQLite caching with a
-  14-day stale-copy emergency tier, polite rate-limiting per host, retries.
+  14-day stale-copy emergency tier, polite rate-limiting per host (verified
+  by tests and by `main validate` against each provider's documented
+  limits — SEC ≤10 req/s, we use 5), 429-aware backoff, retries. Wire-format
+  contract tests (`tests/test_integrations.py`) replay each source's real
+  response shapes — including EDGAR quarterly-vs-annual mixing, Yahoo null
+  closes, Stooq junk rows, FRED "." placeholders, and Atom-vs-RSS feeds —
+  through the real parsers on every test run.
 - **Process**: heartbeat file + PowerShell watchdog (restarts on crash *or*
   hang) + Task Scheduler auto-start at boot + `powercfg` never-sleep.
 - **Capital**: drawdown breaker (−15% halts all buying), daily-loss breaker

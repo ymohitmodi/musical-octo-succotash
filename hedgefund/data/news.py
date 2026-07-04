@@ -25,11 +25,12 @@ class NewsFeed:
         self.http = RateLimitedHTTP(rps=1.0, user_agent="hedgefund/0.1 rss reader")
 
     def _parse(self, url: str, limit: int) -> list[dict]:
+        """Parse RSS 2.0 and Atom feeds (both appear in the wild)."""
         try:
             resp = self.http.get(url, timeout=20)
             root = ET.fromstring(resp.content)
             items = []
-            for item in root.iter("item"):
+            for item in root.iter("item"):  # RSS 2.0
                 items.append({
                     "title": (item.findtext("title") or "").strip(),
                     "date": (item.findtext("pubDate") or "").strip(),
@@ -37,6 +38,17 @@ class NewsFeed:
                 })
                 if len(items) >= limit:
                     break
+            if not items:  # Atom
+                ns = "{http://www.w3.org/2005/Atom}"
+                for entry in root.iter(f"{ns}entry"):
+                    link_el = entry.find(f"{ns}link")
+                    items.append({
+                        "title": (entry.findtext(f"{ns}title") or "").strip(),
+                        "date": (entry.findtext(f"{ns}updated") or "").strip(),
+                        "link": (link_el.get("href", "") if link_el is not None else "").strip(),
+                    })
+                    if len(items) >= limit:
+                        break
             return items
         except Exception as e:  # noqa: BLE001 - news is best-effort
             log.warning("rss failed %s: %s", url, e)
