@@ -82,6 +82,18 @@ class MarketData:
             log.warning("stooq bars failed for %s: %s", ticker, e)
             return None
 
+    def full_history(self, ticker: str) -> list[dict]:
+        """Complete daily history (Stooq first — decades of data — Yahoo 2y
+        as fallback). Cached 24h; used by the backtester."""
+        key = f"mkt:hist:{ticker}"
+        cached = self.db.cache_get(key)
+        if cached:
+            return cached
+        bars = self._stooq_bars(ticker, days=20000) or self._yahoo_bars(ticker, days=500)
+        if bars:
+            self.db.cache_set(key, bars, ttl_sec=24 * 3600)
+        return bars or []
+
     # ----------------------------------------------------------------- quotes
     def last_price(self, ticker: str) -> float | None:
         bars = self.daily_bars(ticker, days=30)

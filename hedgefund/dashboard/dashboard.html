@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Deep-Value Fund</title>
+<style>
+  .viz-root {
+    --surface-1: #fcfcfb;  --page: #f9f9f7;
+    --ink: #0b0b0b;        --ink-2: #52514e;    --muted: #898781;
+    --grid: #e1e0d9;       --axis: #c3c2b7;     --border: rgba(11,11,11,.10);
+    --series-1: #2a78d6;   --series-2: #1baf7a;
+    --good: #006300;       --bad: #d03b3b;      --warn: #fab219;
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --ink: #ffffff;       --ink-2: #c3c2b7;   --muted: #898781;
+      --grid: #2c2c2a;      --axis: #383835;    --border: rgba(255,255,255,.10);
+      --series-1: #3987e5;  --series-2: #199e70;
+      --good: #0ca30c;      --bad: #d03b3b;     --warn: #fab219;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body.viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink);
+    padding: 20px; max-width: 1180px; margin: 0 auto;
+  }
+  header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  h1 { font-size: 19px; font-weight: 650; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--ink-2); text-transform: uppercase;
+       letter-spacing: .04em; margin: 0 0 10px; }
+  .hb { font-size: 12px; color: var(--muted); }
+  .hb .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+             margin-right: 5px; background: var(--muted); vertical-align: baseline; }
+  .hb.live .dot { background: var(--good); }
+  .hb.stale .dot { background: var(--warn); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+           gap: 10px; margin-bottom: 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border);
+          border-radius: 10px; padding: 12px 14px; }
+  .tile .k { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .tile .v { font-size: 22px; font-weight: 650; }
+  .tile .d { font-size: 12px; margin-top: 2px; color: var(--ink-2); }
+  .up { color: var(--good); } .down { color: var(--bad); }
+  .card { background: var(--surface-1); border: 1px solid var(--border);
+          border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+  .legend .sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px;
+                vertical-align: middle; margin-right: 6px; }
+  #chartwrap { position: relative; }
+  #tooltip { position: absolute; pointer-events: none; display: none;
+             background: var(--surface-1); border: 1px solid var(--border);
+             border-radius: 8px; padding: 8px 10px; font-size: 12px;
+             box-shadow: 0 2px 10px rgba(0,0,0,.12); white-space: nowrap; z-index: 5; }
+  #tooltip .row { display: flex; gap: 8px; justify-content: space-between; }
+  #tooltip .num { font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px;
+       text-transform: uppercase; letter-spacing: .03em; padding: 4px 8px;
+       border-bottom: 1px solid var(--grid); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--grid);
+       font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 99px;
+           border: 1px solid var(--border); color: var(--ink-2); }
+  .badge.buy { color: var(--good); border-color: var(--good); }
+  .badge.reject, .badge.sell { color: var(--bad); border-color: var(--bad); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  .feed { list-style: none; font-size: 12.5px; }
+  .feed li { padding: 5px 0; border-bottom: 1px solid var(--grid); color: var(--ink-2); }
+  .feed li:last-child { border-bottom: none; }
+  .feed .kind { color: var(--ink); font-weight: 600; margin-right: 6px; }
+  .feed time { color: var(--muted); margin-right: 6px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
+  .thesis { color: var(--ink-2); font-size: 12px; max-width: 420px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: normal; }
+  footer { font-size: 11px; color: var(--muted); margin-top: 8px; }
+</style>
+</head>
+<body class="viz-root">
+<header>
+  <h1>🏭 AI Deep-Value Fund</h1>
+  <span class="hb" id="hb"><span class="dot"></span><span id="hbtext">connecting…</span></span>
+</header>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="card">
+  <h2>NAV vs benchmark — indexed to 100 at first mark</h2>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--series-1)"></span>Fund NAV</span>
+    <span><span class="sw" style="background:var(--series-2)"></span>SPY (indexed)</span>
+  </div>
+  <div id="chartwrap">
+    <svg id="chart" width="100%" height="260" role="img" aria-label="Fund NAV versus SPY benchmark, both indexed to 100"></svg>
+    <div id="tooltip"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Open positions</h2>
+  <div id="positions"></div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Recent committee decisions</h2>
+    <div id="decisions"></div>
+  </div>
+  <div class="card">
+    <h2>Journal — last events</h2>
+    <ul class="feed" id="events"></ul>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Agent genomes (evolution)</h2>
+    <div id="genomes"></div>
+  </div>
+  <div class="card">
+    <h2>Latest screener backtest</h2>
+    <div id="backtest"></div>
+  </div>
+</div>
+
+<footer>Read-only view over data/fund.db · auto-refreshes every 60s · paper trading — not financial advice</footer>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const fmt$ = v => "$" + Number(v).toLocaleString(undefined, {maximumFractionDigits: 0});
+const fmtPct = (v, s) => v == null ? "—" : ((s && v > 0 ? "+" : "") + (100 * v).toFixed(1) + "%");
+const fmtTs = ts => new Date(1000 * ts).toLocaleString(undefined,
+  {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function refresh() {
+  let d;
+  try { d = await (await fetch("/api/summary")).json(); }
+  catch { setHb(null, "api unreachable"); return; }
+
+  // heartbeat
+  if (d.heartbeat) {
+    const live = d.heartbeat.age_sec < 900;
+    setHb(live ? "live" : "stale",
+      (live ? "engine live" : "engine stale") + " · " + d.heartbeat.status +
+      " · " + d.heartbeat.age_sec + "s ago");
+  } else setHb(null, "engine not running (dashboard only)");
+
+  // tiles
+  const hist = d.nav_history || [];
+  const last = hist[hist.length - 1];
+  const nav = last ? last.nav : (d.state ? d.state.cash : null);
+  const cash = last ? last.cash : (d.state ? d.state.cash : null);
+  const first = hist[0];
+  const totalRet = first && nav ? nav / first.nav - 1 : null;
+  const peak = d.state ? Math.max(d.state.peak_nav || 0, nav || 0) : nav;
+  const dd = nav && peak ? nav / peak - 1 : null;
+  $("tiles").innerHTML = [
+    tile("NAV", nav != null ? fmt$(nav) : "—",
+         totalRet == null ? "" : `<span class="${totalRet >= 0 ? "up" : "down"}">${fmtPct(totalRet, true)} since inception</span>`),
+    tile("Cash", cash != null ? fmt$(cash) : "—",
+         nav ? fmtPct(cash / nav) + " of NAV" : ""),
+    tile("Positions", (d.positions || []).length,
+         (d.decisions || []).filter(x => x.status === "open").length + " open decisions"),
+    tile("Drawdown from peak", dd == null ? "—" :
+         `<span class="${dd < -0.05 ? "down" : ""}">${fmtPct(dd)}</span>`, ""),
+    tile("Trades (all time)", (d.trades || []).length >= 25 ? "25+" : (d.trades || []).length, ""),
+  ].join("");
+
+  drawChart(hist);
+  renderPositions(d.positions || []);
+  renderDecisions(d.decisions || []);
+  renderEvents(d.events || []);
+  renderGenomes(d.genomes || []);
+  renderBacktest(d.backtest);
+}
+
+function tile(k, v, dsub) {
+  return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${dsub || ""}</div></div>`;
+}
+function setHb(cls, text) {
+  const el = $("hb");
+  el.className = "hb" + (cls ? " " + cls : "");
+  $("hbtext").textContent = text;
+}
+
+/* ---------- NAV chart: two indexed lines, crosshair tooltip ---------- */
+let chartPts = [];
+function drawChart(hist) {
+  const svg = $("chart");
+  const W = svg.clientWidth || 900, H = 260, m = {t: 14, r: 60, b: 24, l: 46};
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const pts = hist.filter(h => h.nav > 0);
+  if (pts.length < 2) {
+    svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--muted)"
+      font-size="13">Not enough NAV history yet — the chart appears after a few monitor cycles.</text>`;
+    chartPts = [];
+    return;
+  }
+  const nav0 = pts[0].nav, b0 = pts.find(p => p.benchmark_price)?.benchmark_price;
+  const series = pts.map(p => ({
+    ts: p.ts,
+    fund: 100 * p.nav / nav0,
+    bench: b0 && p.benchmark_price ? 100 * p.benchmark_price / b0 : null,
+  }));
+  const vals = series.flatMap(s => [s.fund, s.bench]).filter(v => v != null);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = Math.max((hi - lo) * 0.08, 0.5); lo -= pad; hi += pad;
+  const x = i => m.l + (i / (series.length - 1)) * (W - m.l - m.r);
+  const y = v => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+
+  let g = "";
+  const ticks = 4;
+  for (let i = 0; i <= ticks; i++) {
+    const v = lo + (i / ticks) * (hi - lo), yy = y(v);
+    g += `<line x1="${m.l}" y1="${yy}" x2="${W - m.r}" y2="${yy}" stroke="var(--grid)" stroke-width="1"/>`;
+    g += `<text x="${m.l - 8}" y="${yy + 4}" text-anchor="end" font-size="10.5"
+          fill="var(--muted)" font-variant-numeric="tabular-nums">${v.toFixed(0)}</text>`;
+  }
+  const t0 = new Date(1000 * series[0].ts), t1 = new Date(1000 * series[series.length - 1].ts);
+  const dfmt = t => t.toLocaleDateString(undefined, {month: "short", day: "numeric"});
+  g += `<text x="${m.l}" y="${H - 6}" font-size="10.5" fill="var(--muted)">${dfmt(t0)}</text>`;
+  g += `<text x="${W - m.r}" y="${H - 6}" text-anchor="end" font-size="10.5" fill="var(--muted)">${dfmt(t1)}</text>`;
+  g += `<line x1="${m.l}" y1="${H - m.b}" x2="${W - m.r}" y2="${H - m.b}" stroke="var(--axis)" stroke-width="1"/>`;
+
+  const path = (key, color) => {
+    const d = series.map((s, i) => s[key] == null ? "" :
+      `${i === 0 || series[i-1][key] == null ? "M" : "L"}${x(i).toFixed(1)},${y(s[key]).toFixed(1)}`).join("");
+    return d ? `<path d="${d}" fill="none" stroke="${color}" stroke-width="2"
+                stroke-linejoin="round" stroke-linecap="round"/>` : "";
+  };
+  g += path("bench", "var(--series-2)");
+  g += path("fund", "var(--series-1)");
+  // direct labels at line ends
+  const lastS = series[series.length - 1];
+  g += `<text x="${W - m.r + 6}" y="${y(lastS.fund) + 4}" font-size="11" fill="var(--ink-2)">Fund</text>`;
+  if (lastS.bench != null)
+    g += `<text x="${W - m.r + 6}" y="${y(lastS.bench) + 4}" font-size="11" fill="var(--ink-2)">SPY</text>`;
+  g += `<line id="xhair" y1="${m.t}" y2="${H - m.b}" stroke="var(--axis)" stroke-width="1" visibility="hidden"/>
+        <circle id="dotF" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2" visibility="hidden"/>
+        <circle id="dotB" r="4" fill="var(--series-2)" stroke="var(--surface-1)" stroke-width="2" visibility="hidden"/>
+        <rect id="hitzone" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/>`;
+  svg.innerHTML = g;
+  chartPts = series.map((s, i) => ({...s, px: x(i), pyF: y(s.fund), pyB: s.bench == null ? null : y(s.bench)}));
+
+  const tip = $("tooltip");
+  const hz = $("hitzone");
+  hz.onmousemove = e => {
+    const rect = svg.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    let best = chartPts[0], bd = 1e9;
+    for (const p of chartPts) { const dd = Math.abs(p.px - mx); if (dd < bd) { bd = dd; best = p; } }
+    $("xhair").setAttribute("x1", best.px); $("xhair").setAttribute("x2", best.px);
+    $("xhair").setAttribute("visibility", "visible");
+    $("dotF").setAttribute("cx", best.px); $("dotF").setAttribute("cy", best.pyF);
+    $("dotF").setAttribute("visibility", "visible");
+    if (best.pyB != null) {
+      $("dotB").setAttribute("cx", best.px); $("dotB").setAttribute("cy", best.pyB);
+      $("dotB").setAttribute("visibility", "visible");
+    } else $("dotB").setAttribute("visibility", "hidden");
+    tip.innerHTML = `<div style="color:var(--muted);margin-bottom:3px">${fmtTs(best.ts)}</div>
+      <div class="row"><span><span class="sw" style="background:var(--series-1);display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px"></span>Fund</span><span class="num">${best.fund.toFixed(1)}</span></div>
+      ${best.bench == null ? "" : `<div class="row"><span><span style="background:var(--series-2);display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px"></span>SPY</span><span class="num">${best.bench.toFixed(1)}</span></div>`}`;
+    tip.style.display = "block";
+    const wrapW = $("chartwrap").clientWidth;
+    const left = (best.px / W) * wrapW;
+    tip.style.left = Math.min(left + 14, wrapW - tip.offsetWidth - 4) + "px";
+    tip.style.top = "16px";
+  };
+  hz.onmouseleave = () => {
+    tip.style.display = "none";
+    for (const id of ["xhair", "dotF", "dotB"]) $(id).setAttribute("visibility", "hidden");
+  };
+}
+
+/* ---------- tables & feeds ---------- */
+function renderPositions(ps) {
+  if (!ps.length) { $("positions").innerHTML = `<div class="empty">No open positions.</div>`; return; }
+  $("positions").innerHTML = `<table><thead><tr>
+    <th>Ticker</th><th>Sector</th><th>Qty</th><th>Avg cost</th><th>Opened</th></tr></thead><tbody>` +
+    ps.map(p => `<tr><td><strong>${esc(p.ticker)}</strong></td><td>${esc(p.sector || "")}</td>
+      <td>${Number(p.qty).toLocaleString()}</td><td>$${Number(p.avg_cost).toFixed(2)}</td>
+      <td>${fmtTs(p.opened_ts)}</td></tr>`).join("") + "</tbody></table>";
+}
+function renderDecisions(ds) {
+  if (!ds.length) { $("decisions").innerHTML = `<div class="empty">No decisions yet — the committee runs on the evening schedule.</div>`; return; }
+  $("decisions").innerHTML = `<table><thead><tr>
+    <th>When</th><th>Ticker</th><th>Action</th><th>Conv.</th><th>Thesis</th></tr></thead><tbody>` +
+    ds.map(x => `<tr><td>${fmtTs(x.ts)}</td><td><strong>${esc(x.ticker)}</strong></td>
+      <td><span class="badge ${esc(x.action)}">${esc(x.action)}</span></td>
+      <td>${Math.round(x.conviction)}</td>
+      <td class="thesis" title="${esc(x.thesis)}">${esc(x.thesis)}</td></tr>`).join("") +
+    "</tbody></table>";
+}
+function renderEvents(evts) {
+  $("events").innerHTML = evts.length ? evts.slice(0, 18).map(e =>
+    `<li><time>${fmtTs(e.ts)}</time><span class="kind">${esc(e.kind)}</span>` +
+    `${e.ticker ? esc(e.ticker) + " · " : ""}${esc(e.brief)}</li>`).join("")
+    : `<li class="empty">Journal empty.</li>`;
+}
+function renderGenomes(gs) {
+  if (!gs.length) { $("genomes").innerHTML = `<div class="empty">Gen-0 genomes appear on first run.</div>`; return; }
+  $("genomes").innerHTML = `<table><thead><tr>
+    <th>Agent</th><th>Gen</th><th>Fitness</th><th>Active</th><th>Created</th></tr></thead><tbody>` +
+    gs.slice(0, 14).map(x => `<tr><td>${esc(x.agent)}</td><td>${x.generation}</td>
+      <td>${x.fitness == null ? "—" : (x.fitness >= 0 ? '<span class="up">' : '<span class="down">') + fmtPct(x.fitness, true) + "</span>"}</td>
+      <td>${x.active ? "●" : ""}</td><td>${fmtTs(x.created_ts)}</td></tr>`).join("") +
+    "</tbody></table>";
+}
+function renderBacktest(s) {
+  if (!s) { $("backtest").innerHTML = `<div class="empty">Run <code>python -m hedgefund.main backtest 2016-01-01</code> to populate.</div>`; return; }
+  $("backtest").innerHTML = `<table><tbody>
+    <tr><td>Period</td><td>${esc(s.start)} → ${esc(s.end)} (${s.years}y)</td></tr>
+    <tr><td>CAGR / benchmark</td><td>${fmtPct(s.cagr, true)} vs ${fmtPct(s.benchmark_cagr, true)}</td></tr>
+    <tr><td>Excess CAGR</td><td class="${(s.excess_cagr || 0) >= 0 ? "up" : "down"}">${fmtPct(s.excess_cagr, true)}</td></tr>
+    <tr><td>Sharpe / max DD</td><td>${s.sharpe ?? "—"} / ${fmtPct(s.max_drawdown)}</td></tr>
+    <tr><td>Universe (skipped)</td><td>${s.universe} (${s.skipped})</td></tr>
+  </tbody></table>`;
+}
+
+refresh();
+setInterval(refresh, 60000);
+window.addEventListener("resize", () => refresh());
+</script>
+</body>
+</html>

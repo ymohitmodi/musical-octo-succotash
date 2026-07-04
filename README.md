@@ -135,6 +135,41 @@ automatically. For Claude Desktop, add to `claude_desktop_config.json`:
 }
 ```
 
+## Web dashboard
+
+A zero-dependency (stdlib `http.server`) read-only dashboard over the fund's
+SQLite journal — NAV vs SPY chart (indexed, with crosshair tooltip), stat
+tiles, open positions, committee decisions, the event journal, genome
+lineage, and the latest backtest. Light/dark follows your OS theme.
+
+```powershell
+.\.venv\Scripts\python.exe -m hedgefund.main dashboard        # http://127.0.0.1:8787
+```
+
+It binds to localhost and exposes no write operations. An "engine live/stale"
+indicator reads the scheduler's heartbeat so you can see at a glance that the
+24/7 loop is healthy.
+
+## Backtesting the screener signal
+
+Replays the quant screener (the factory's intake conveyor) historically:
+rank the universe by the deep-value composite each month, hold the top N
+equal-weighted with slippage, compare against SPY.
+
+```powershell
+.\.venv\Scripts\python.exe -m hedgefund.main backtest 2016-01-01              # to today, top 20
+.\.venv\Scripts\python.exe -m hedgefund.main backtest 2016-01-01 2024-12-31 15
+```
+
+Honesty guards: **point-in-time fundamentals** (an annual filing only becomes
+visible 90 days after fiscal year end — no look-ahead bias), fills at close
+plus slippage, and stale prices treated as delistings. Two stated
+limitations: the LLM committee is *not* simulated (historical LLM judgments
+can't be replayed honestly), and a hand-written universe of today's tickers
+carries survivorship bias — so judge the top-N *relative* to the benchmark,
+not the absolute CAGR. Reports land in `reports/backtest_*.md` and feed the
+dashboard's backtest panel.
+
 ## Resilience design
 
 - **LLM**: model fallback chain → per-model retry with backoff → per-model
@@ -161,6 +196,8 @@ hedgefund/
   portfolio/      paper broker (fills, stops, NAV)
   evolution/      genome breeding on realized P&L
   orchestrator/   pipeline.py (the factory line) · scheduler.py (24/7 shifts)
+  backtest/       point-in-time screener backtester
+  dashboard/      stdlib web dashboard (NAV chart, positions, journal)
   mcp_server/     MCP tools over stdio
 scripts/          install_windows.ps1 · run_forever.ps1 · register_task.ps1
 tests/            offline unit tests (quant math, vetoes, evolution bounds)
