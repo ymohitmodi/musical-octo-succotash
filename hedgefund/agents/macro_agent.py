@@ -42,6 +42,7 @@ and set risk posture.""",
                 schema_hint=('{"regime": "...", "risk_multiplier": 0.5-1.0, '
                              '"cash_target_pct": 0.10-0.35, "rationale": "..."}'),
                 temperature=float(self.genome.get("temperature", 0.3)),
+                tier="light",   # advisory posture call: cheap models suffice
             )
         except Exception:  # noqa: BLE001 - macro is advisory; default = neutral
             out = {"regime": "unknown", "risk_multiplier": 0.8,

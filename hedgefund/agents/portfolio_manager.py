@@ -16,6 +16,7 @@ from .base import DISCLAIMER, load_active_genome
 
 class PortfolioManager:
     name = "pm"
+    preferred_model: str | None = None
     default_genome = {"temperature": 0.25, "base_position_pct": 0.03,
                       "conviction_scaling": 0.6}
 
@@ -80,6 +81,7 @@ triggers (exit conditions).""",
                          '"target_weight": 0.0-0.05, "target_entry": number|null, '
                          '"thesis": "...", "invalidation_triggers": ["..."]}'),
             temperature=float(self.genome.get("temperature", 0.25)),
+            model=self.preferred_model,
         )
         decision.setdefault("action", "reject")
         decision.setdefault("conviction", 0)
@@ -141,6 +143,7 @@ state ONE transferable lesson in a single sentence a future analyst must
 not forget.""",
                 schema_hint='{"category": "process|thesis|timing|luck", "lesson": "..."}',
                 temperature=0.3,
+                tier="light",
             )
         except Exception:  # noqa: BLE001 - memory is valuable, never critical
             return None
@@ -171,6 +174,7 @@ Original thesis (recorded at entry, immutable): {original_thesis}
 Decide hold or sell.""",
                 schema_hint='{"action": "hold|sell", "reason": "..."}',
                 temperature=0.2,
+                tier="light",   # routine review: cheap models, budget-friendly
             )
         except Exception:  # noqa: BLE001 - on LLM failure, default to hold (do nothing)
             out = {"action": "hold", "reason": "LLM unavailable; defaulting to hold"}

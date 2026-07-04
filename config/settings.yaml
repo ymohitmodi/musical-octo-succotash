@@ -9,9 +9,26 @@ fund:
 llm:
   host: ${OLLAMA_HOST:http://localhost:11434}
   api_key: ${OLLAMA_API_KEY:}
-  # Fallback chain, strongest first. If a model errors/times out we degrade
-  # down the chain instead of failing the pipeline (dark-factory resilience).
+  # HEAVY chain: strongest first — used for committee analyses, PM decisions,
+  # checklist, pre-mortem, constitutional critique (the calls that move money).
   models: ${OLLAMA_MODELS:deepseek-v3.1:671b-cloud,gpt-oss:120b-cloud,qwen3:32b,llama3.1:8b}
+  # LIGHT chain: cheap models for routine work — position reviews, macro
+  # refresh, post-mortems. Ollama cloud meters GPU time by model weight
+  # (usage levels 1-4), so tiering stretches a Pro plan across 24/7 operation.
+  light_models: ${OLLAMA_LIGHT_MODELS:gpt-oss:20b-cloud,qwen3:8b,llama3.1:8b}
+  # Daily budget in units (heavy call = 3, light = 1). Sized so a normal day
+  # (1 research cycle ≈ 8 heavy calls = 24u, monitors ≈ 20u) uses well under
+  # half, leaving headroom for weekend rescans. 0 = unlimited (self-hosted).
+  daily_budget_units: 400
+  # Committee model diversity: different models per agent breaks single-model
+  # groupthink (correlated blind spots). Each agent tries its model first,
+  # then falls back down the heavy chain. Leave blank to use the chain.
+  agent_models:
+    fundamental: ${MODEL_FUNDAMENTAL:}
+    forensic: ${MODEL_FORENSIC:}
+    moat: ${MODEL_MOAT:}
+    bear: ${MODEL_BEAR:gpt-oss:120b-cloud}     # the dissenter thinks differently
+    pm: ${MODEL_PM:}
   request_timeout_sec: 240
   max_retries: 3
 

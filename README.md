@@ -170,6 +170,23 @@ carries survivorship bias — so judge the top-N *relative* to the benchmark,
 not the absolute CAGR. Reports land in `reports/backtest_*.md` and feed the
 dashboard's backtest panel.
 
+## Being realistic: what the research says, and how this fund is designed around it
+
+Studying the world's most successful funds gives clear — and humbling — base
+rates. This system is engineered around them rather than in denial of them:
+
+| Fact from the record | Design response |
+|---|---|
+| **Medallion's ~39% net / 66% gross is irreproducible**: high-frequency stat-arb on microstructure, a ~51% hit rate over millions of trades, capped capacity, closed fund. No retail system can play that game. | The fund's doctrine (`doctrine/edge.md`, read by the PM before every decision) explicitly **forbids speed-dependent strategies**. We never compete on reaction time. |
+| **Systematic value's audited live record is ~3%/yr over the index** (Magic Formula 2003–2015: 11.4% vs 8.7% — not the book's 30%), and the value factor's long-run ~4% premium comes with decade-long droughts. | Target calibration: **beat SPY by 2–4%/yr over rolling 3–5 year windows with shallower drawdowns.** That IS world-class for this strategy class; the doctrine teaches the agents to treat chasing more as a risk signal. |
+| **Patient capital is the one edge open to small investors**: high-conviction managers holding >2 years outperform by ~2%/yr; small size means no capacity constraints, no redemptions, no career risk. | The whole machine is built for **time arbitrage**: watchlist stalking instead of chasing, 2-year max-holding thesis windows, no trade quotas (P7), turnover treated as a tax. |
+| **LLMs can't predict prices; they can read tirelessly and stay disciplined.** Their failure mode is hallucination and overconfidence. | LLMs never produce a number — all math is deterministic (`quant.py` from SEC XBRL); models only interpret. Every claim must trace to a filing (P4), every decision passes the enforced checklist, and hard limits are code. |
+| **Free data is delayed and annual**: XBRL annual facts can be ~15 months stale; prices are delayed. | Strategy horizon (years) is chosen so data latency is noise. Dossiers carry an explicit `fundamentals_age_days` staleness warning the analysts must reason about. This fund never day-trades — by design AND by necessity. |
+| **A single LLM family has correlated blind spots** — a committee of clones isn't a committee. | **Model-diverse committee**: each agent can run a different Ollama cloud model (`agent_models` in settings; the bear defaults to a different family than the analysts). Preferred model first, fallback chain behind it. |
+| **Ollama cloud plans meter GPU time** (5-hour session + weekly caps; models cost usage levels 1–4). A 24/7 fund could exhaust its brain mid-week. | **Budget governor + tiered routing**: heavy models only for the ~8 calls per research cycle that move money; light models for routine reviews/macro/post-mortems; a daily unit budget that **fails closed** when exhausted — no committee, no new buys, while screening, stops, and breakers keep running. |
+
+Sources: [Medallion fund returns](https://ofdollarsanddata.com/medallion-fund/) · [Renaissance breakdown](https://www.danielscrivner.com/renaissance-technologies-business-breakdown/) · [Magic Formula critical backtest](https://reasonabledeviations.com/2020/06/08/greenblatt-magic-formula/) · [Magic formula (Wikipedia)](https://en.wikipedia.org/wiki/Magic_formula_investing) · [Patient capital outperformance (Cremers & Pareek, JFE)](https://www.sciencedirect.com/science/article/abs/pii/S0304405X16301441) · [Value vs growth history (Dimensional)](https://www.dimensional.com/ca-en/insights/when-its-value-versus-growth-history-is-on-values-side) · [Ollama pricing](https://ollama.com/pricing) · [Ollama cloud models](https://ollama.com/blog/cloud-models)
+
 ## Resilience design
 
 - **LLM**: model fallback chain → per-model retry with backoff → per-model

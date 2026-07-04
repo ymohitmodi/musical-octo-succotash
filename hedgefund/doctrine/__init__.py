@@ -22,8 +22,8 @@ AGENT_DOCTRINE: dict[str, list[str]] = {
     "forensic": ["forensic", "process"],
     "moat": ["quality_moats", "process"],
     "bear": ["quality_moats", "cycles_macro", "process"],
-    "macro": ["cycles_macro"],
-    "pm": ["portfolio", "process", "valuation"],
+    "macro": ["cycles_macro", "edge"],
+    "pm": ["portfolio", "edge", "process"],
     "critic": ["process", "portfolio"],
 }
 

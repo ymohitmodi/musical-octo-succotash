@@ -52,6 +52,7 @@ class BaseAgent:
     name: str = "base"
     role: str = ""
     default_genome: dict[str, Any] = {"temperature": 0.3, "skepticism": 0.5}
+    preferred_model: str | None = None   # committee diversity (set by pipeline)
 
     def __init__(self, llm: LLMClient, db: DB):
         self.llm = llm
@@ -79,6 +80,7 @@ class BaseAgent:
                          '"thesis": "...", "key_risks": ["..."], "red_flags": ["..."], '
                          '"estimated_upside_pct": number|null}'),
             temperature=float(self.genome.get("temperature", 0.3)),
+            model=self.preferred_model,
         )
         report.setdefault("verdict", "neutral")
         report.setdefault("confidence", 50)

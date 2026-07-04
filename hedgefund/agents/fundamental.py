@@ -31,6 +31,8 @@ ALTMAN Z: {dossier.get('altman_z')}   BENEISH M: {dossier.get('beneish_m')}
 {json.dumps(dossier.get('fundamentals_summary', {}), indent=2, default=str)}
 
 MARKET SNAPSHOT: {json.dumps(dossier.get('snapshot', {}), default=str)}
+DATA FRESHNESS: fundamentals are {dossier.get('fundamentals_age_days', '?')} days old.
+{dossier.get('data_caveat') or ''}
 
 RECENT SEC FILINGS: {json.dumps(dossier.get('filings', [])[:6], default=str)}
 

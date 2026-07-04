@@ -71,6 +71,7 @@ def main() -> None:
                                              'last_price', 'unrealized_pct')}
                           for p in pipeline.broker.positions()],
             "llm": pipeline.llm.health(),
+            "llm_budget": pipeline.llm.budget.status() if pipeline.llm.budget else None,
         }, indent=2, default=str))
     elif cmd == "dashboard":
         from .dashboard import serve

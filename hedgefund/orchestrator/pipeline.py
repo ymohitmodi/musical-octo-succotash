@@ -16,7 +16,7 @@ from ..agents import (ANALYST_CLASSES, MacroStrategist, PortfolioManager,
 from ..config import Config, ROOT
 from ..constitution import ConstitutionEngine
 from ..data import EdgarClient, MacroData, MarketData, NewsFeed
-from ..llm import LLMClient
+from ..llm import BudgetGovernor, LLMClient
 from ..portfolio import PaperBroker
 from ..storage import DB
 
@@ -28,9 +28,13 @@ class Pipeline:
         self.cfg = cfg
         s = cfg.settings
         self.db = DB(cfg.data_dir / "fund.db")
+        governor = BudgetGovernor(self.db, int(s["llm"].get("daily_budget_units", 0)))
+        light = [m.strip() for m in str(s["llm"].get("light_models", "")).split(",")
+                 if m.strip()]
         self.llm = LLMClient(
             host=s["llm"]["host"], models=cfg.models, api_key=s["llm"].get("api_key", ""),
-            timeout=int(s["llm"]["request_timeout_sec"]), max_retries=int(s["llm"]["max_retries"]))
+            timeout=int(s["llm"]["request_timeout_sec"]), max_retries=int(s["llm"]["max_retries"]),
+            light_models=light, budget=governor)
         self.edgar = EdgarClient(self.db, s["data"]["edgar_user_agent"],
                                  rps=float(s["data"]["edgar_rps"]))
         self.market = MarketData(self.db, rps=float(s["data"]["market_rps"]))
@@ -43,8 +47,14 @@ class Pipeline:
                                                checklist=cfg.checklist)
         self.screener = Screener(self.db, self.edgar, self.market, cfg.hard_limits)
         self.analysts = [cls(self.llm, self.db) for cls in ANALYST_CLASSES]
+        # committee model diversity: per-agent preferred models break the
+        # correlated blind spots of a single-model committee
+        agent_models = s["llm"].get("agent_models") or {}
+        for a in self.analysts:
+            a.preferred_model = str(agent_models.get(a.name) or "").strip() or None
         self.macro_agent = MacroStrategist(self.llm, self.db)
         self.pm = PortfolioManager(self.llm, self.db)
+        self.pm.preferred_model = str(agent_models.get("pm") or "").strip() or None
         self.prospector = Prospector(self.db, self.edgar, self.market, self.screener,
                                      list(cfg.universe.get("seeds", [])))
 
@@ -63,9 +73,22 @@ class Pipeline:
         f = self.edgar.fundamentals(ticker) or {}
         summary = {concept: [{"end": r["end"], "val": r["val"]} for r in series]
                    for concept, series in f.items()}
+        # honesty about staleness: agents must KNOW how old the numbers are
+        # (free XBRL data is annual; a fiscal year can be ~15 months stale)
+        newest = max((s[0]["end"] for s in f.values() if s), default=None)
+        age_days = None
+        if newest:
+            from datetime import datetime, timezone
+            age_days = (datetime.now(timezone.utc)
+                        - datetime.strptime(newest, "%Y-%m-%d").replace(
+                            tzinfo=timezone.utc)).days
         return {
             **candidate,
             "fundamentals_summary": summary,
+            "fundamentals_age_days": age_days,
+            "data_caveat": (f"Latest audited fiscal data is {age_days} days old; "
+                            "weight recent filings/news for anything since."
+                            if age_days and age_days > 270 else None),
             "filings": self.edgar.recent_filings(ticker),
             "news": self.news.for_ticker(ticker),
         }

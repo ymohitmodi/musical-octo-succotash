@@ -50,6 +50,9 @@ genomes on realized P&L. Everything journals to SQLite (`storage/db.py`).
   `evolution/evolver.py:GENE_BOUNDS` — never prompts, code, or hard limits.
 - All LLM JSON goes through `LLMClient.chat_json` (repair + fallback chain);
   don't parse model output ad hoc.
+- The LLM budget governor (`llm/budget.py`) fails closed: budget exhausted →
+  no committee → no new buys, while deterministic rails keep running. Never
+  bypass it, and keep money-moving calls on the heavy tier.
 - Data sources are free tiers: keep the rate limits in `data/http.py`, and
   keep the SEC User-Agent email requirement intact.
 

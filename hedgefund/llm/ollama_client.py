@@ -47,9 +47,12 @@ class _Breaker:
 
 class LLMClient:
     def __init__(self, host: str, models: list[str], api_key: str = "",
-                 timeout: int = 240, max_retries: int = 3):
+                 timeout: int = 240, max_retries: int = 3,
+                 light_models: list[str] | None = None, budget=None):
         self.host = host.rstrip("/")
         self.models = models
+        self.light_models = light_models or []
+        self.budget = budget          # BudgetGovernor | None
         self.api_key = api_key
         self.timeout = timeout
         self.max_retries = max_retries
@@ -57,9 +60,18 @@ class LLMClient:
 
     # ------------------------------------------------------------------ chat
     def chat(self, messages: list[dict], *, temperature: float = 0.3,
-             model: str | None = None) -> str:
-        """Return assistant text, walking the fallback chain on failure."""
-        chain = [model] if model else self.models
+             model: str | None = None, tier: str = "heavy") -> str:
+        """Return assistant text, walking the fallback chain on failure.
+
+        tier: "heavy" (committee decisions — strongest models) or "light"
+        (routine reviews — cheap models; matches Ollama usage-level economics).
+        A preferred `model` (per-agent diversity) is tried first, then the
+        tier's chain. The budget governor is charged once per logical call.
+        """
+        if self.budget is not None:
+            self.budget.spend(tier)   # BudgetExceededError propagates: fail closed
+        base = self.light_models if (tier == "light" and self.light_models) else self.models
+        chain = ([model] if model else []) + [m for m in base if m != model]
         last_err: Exception | None = None
         for m in chain:
             breaker = self._breakers.setdefault(m, _Breaker())
@@ -101,7 +113,8 @@ class LLMClient:
 
     # ------------------------------------------------------------- json mode
     def chat_json(self, system: str, user: str, *, schema_hint: str = "",
-                  temperature: float = 0.2, retries: int = 2) -> dict:
+                  temperature: float = 0.2, retries: int = 2,
+                  model: str | None = None, tier: str = "heavy") -> dict:
         """Chat and parse a JSON object; retries with a repair prompt on failure."""
         sys_msg = system + "\n\nRespond with a single valid JSON object only. " \
                            "No markdown fences, no commentary." + \
@@ -109,7 +122,7 @@ class LLMClient:
         messages = [{"role": "system", "content": sys_msg},
                     {"role": "user", "content": user}]
         for attempt in range(retries + 1):
-            text = self.chat(messages, temperature=temperature)
+            text = self.chat(messages, temperature=temperature, model=model, tier=tier)
             parsed = self._extract_json(text)
             if parsed is not None:
                 return parsed
