@@ -60,21 +60,30 @@ class BaseAgent:
         self.genome_id, self.genome = load_active_genome(db, self.name, self.default_genome)
 
     # ------------------------------------------------------------------------
-    def system_prompt(self) -> str:
+    embedder = None   # optional semantic-memory Embedder (set by pipeline)
+
+    def system_prompt(self, context: str = "") -> str:
         skept = float(self.genome.get("skepticism", 0.5))
         tone = ("Default to rejecting ideas unless the evidence is overwhelming."
                 if skept > 0.66 else
                 "Weigh evidence impartially; require a clear margin of safety."
                 if skept > 0.33 else
                 "Look actively for overlooked upside, but never ignore red flags.")
+        if self.embedder is not None and context:
+            from ..llm.embeddings import relevant_lessons
+            memory = relevant_lessons(self.db, self.embedder, context)
+        else:
+            memory = recent_lessons(self.db)
         return (f"{DISCLAIMER}\n\nROLE: {self.role}\nDISPOSITION: {tone}"
                 + doctrine.for_agent(self.name)
-                + recent_lessons(self.db))
+                + memory)
 
     def analyze(self, ticker: str, dossier: dict) -> dict:
         """Run the LLM analysis and journal it. Returns the structured report."""
+        context = (f"{ticker} {dossier.get('sector', '')} "
+                   f"{json.dumps(dossier.get('metrics', {}), default=str)[:400]}")
         report = self.llm.chat_json(
-            system=self.system_prompt(),
+            system=self.system_prompt(context=context),
             user=self.user_prompt(ticker, dossier),
             schema_hint=('{"verdict": "bullish|neutral|bearish", "confidence": 0-100, '
                          '"thesis": "...", "key_risks": ["..."], "red_flags": ["..."], '

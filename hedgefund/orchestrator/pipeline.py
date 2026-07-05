@@ -50,8 +50,15 @@ class Pipeline:
         # committee model diversity: per-agent preferred models break the
         # correlated blind spots of a single-model committee
         agent_models = s["llm"].get("agent_models") or {}
+        embed_model = str(s["llm"].get("embed_model") or "").strip()
+        embedder = None
+        if embed_model:
+            from ..llm.embeddings import Embedder
+            embedder = Embedder(self.db, s["llm"]["host"], embed_model,
+                                api_key=str(s["llm"].get("api_key", "")))
         for a in self.analysts:
             a.preferred_model = str(agent_models.get(a.name) or "").strip() or None
+            a.embedder = embedder
         self.macro_agent = MacroStrategist(self.llm, self.db)
         self.pm = PortfolioManager(self.llm, self.db)
         self.pm.preferred_model = str(agent_models.get("pm") or "").strip() or None

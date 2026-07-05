@@ -29,6 +29,10 @@ llm:
     moat: ${MODEL_MOAT:}
     bear: ${MODEL_BEAR:gpt-oss:120b-cloud}     # the dissenter thinks differently
     pm: ${MODEL_PM:}
+  # Semantic memory (optional): an Ollama embedding model (embeddinggemma,
+  # nomic-embed-text) lets agents retrieve the lessons most RELEVANT to the
+  # current analysis instead of merely the most recent. Blank = recency mode.
+  embed_model: ${OLLAMA_EMBED_MODEL:}
   request_timeout_sec: 240
   max_retries: 3
 

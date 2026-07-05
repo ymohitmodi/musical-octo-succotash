@@ -8,6 +8,8 @@
   python -m hedgefund.main doctor     # preflight: verify LLM, data, disk, DB
   python -m hedgefund.main validate [TICKER]          # live end-to-end check of
                                       # every data integration (format+throttle)
+  python -m hedgefund.main benchmark [m1,m2]          # NYX cognitive battery:
+                                      # score each model on the fund's own tasks
   python -m hedgefund.main dashboard [port]           # web dashboard (default 8787)
   python -m hedgefund.main backtest START [END] [N]   # screener backtest, e.g.
                                       # backtest 2016-01-01 2025-12-31 20
@@ -45,6 +47,11 @@ def main() -> None:
         from .validate import run_validation
         args = [a for a in sys.argv[2:] if not a.startswith("-")]
         sys.exit(run_validation(ticker=args[0].upper() if args else "INTC"))
+
+    if cmd == "benchmark":
+        from .benchmark import run_benchmark
+        models = sys.argv[2].split(",") if len(sys.argv) > 2 else None
+        sys.exit(run_benchmark(models))
 
     from .orchestrator import Pipeline, Scheduler
     pipeline = Pipeline(cfg)

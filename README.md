@@ -1,4 +1,6 @@
-# 🏭 Autonomous AI Deep-Value Fund
+# 🌒 NYX — Autonomous AI Deep-Value Fund
+
+*Named for the goddess of night: the fund does its hunting while the market sleeps.*
 
 A fully autonomous, 24/7, multi-agent **deep-value research and paper-trading
 system** for a Windows 11 mini PC. It runs on **Ollama cloud models**, uses
@@ -169,6 +171,46 @@ can't be replayed honestly), and a hand-written universe of today's tickers
 carries survivorship bias — so judge the top-N *relative* to the benchmark,
 not the absolute CAGR. Reports land in `reports/backtest_*.md` and feed the
 dashboard's backtest panel.
+
+## The NYX benchmark: vs frontier models, vs PhDs, vs the index
+
+Run the **cognitive battery** to score your actual model chain on the fund's
+actual tasks (faithful extraction, refusing to fabricate, long-dossier
+recall, catching data-contradicting claims, verdict stability, JSON
+discipline — all deterministically scored, each model tested in isolation):
+
+```powershell
+.\.venv\Scripts\python.exe -m hedgefund.main benchmark
+```
+
+Composite ≥ 0.80 → trust on the heavy (money-moving) tier; 0.60–0.80 →
+light tier only; below → drop from the chain. The safety-critical columns
+are *no-fabricate* and *contradiction*: a model that invents numbers or
+endorses claims its own data refutes has no place in a fund.
+
+The honest comparative verdict this system is built around:
+
+- **vs the S&P 500**: the only benchmark that matters, and the humbling one —
+  [89.5% of professional active funds trail it over 15 years](https://www.spglobal.com/spdji/en/spiva/article/spiva-us/).
+  NYX's structural advantages over those funds are real (no fees, no career
+  risk, no redemptions, mechanized discipline) but the honest prior is
+  uncertainty. That's why it paper-trades against SPY continuously: the NAV
+  chart *is* the benchmark, and it will tell the truth either way.
+- **vs frontier models** (Claude Mythos-class): the reasoning gap is real but
+  bounded — frontier leads the hardest reasoning benchmarks by a few points
+  (e.g. ~94.6 vs ~91.2 GPQA Diamond, per
+  [LM Council](https://lmcouncil.ai/benchmarks) /
+  [llm-stats](https://llm-stats.com/)). NYX's architecture deliberately
+  minimizes what that gap can cost: models never compute (deterministic
+  quant), never bypass gates (fail-closed), never act alone (diverse
+  committee + believability weighting). Frontier IQ would improve judgment
+  at the margin; it would not change the rails.
+- **vs elite human analysts**: NYX wins on breadth, consistency, tirelessness
+  and discipline — it reads the 400th boring filing with full attention and
+  never skips the checklist at 2am. Humans (and human-plus-frontier-model
+  teams) win on scuttlebutt, management judgment, unstructured information
+  and creative inference. NYX is honest doctrine-ware for the first
+  category and does not pretend to the second.
 
 ## Being realistic: what the research says, and how this fund is designed around it
 
