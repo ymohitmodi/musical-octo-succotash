@@ -1,0 +1,60 @@
+# The investable universe. Two modes, combined:
+#   seeds:  always screened
+#   auto_expand: when true, the screener also samples the full SEC ticker file
+#               (company_tickers.json) each weekend, filtered by the
+#               constitution's market-cap and liquidity floors.
+auto_expand: true
+auto_expand_sample: 150          # tickers sampled from SEC list per weekend scan
+
+# Sector labels are used for the constitution's sector-concentration limit.
+seeds:
+  - {ticker: INTC,  sector: technology}
+  - {ticker: CSCO,  sector: technology}
+  - {ticker: HPQ,   sector: technology}
+  - {ticker: DELL,  sector: technology}
+  - {ticker: QCOM,  sector: technology}
+  - {ticker: MU,    sector: technology}
+  - {ticker: PFE,   sector: healthcare}
+  - {ticker: BMY,   sector: healthcare}
+  - {ticker: CVS,   sector: healthcare}
+  - {ticker: VTRS,  sector: healthcare}
+  - {ticker: MRK,   sector: healthcare}
+  - {ticker: CI,    sector: healthcare}
+  - {ticker: BAC,   sector: financials}
+  - {ticker: C,     sector: financials}
+  - {ticker: USB,   sector: financials}
+  - {ticker: MET,   sector: financials}
+  - {ticker: PRU,   sector: financials}
+  - {ticker: ALLY,  sector: financials}
+  - {ticker: SYF,   sector: financials}
+  - {ticker: XOM,   sector: energy}
+  - {ticker: CVX,   sector: energy}
+  - {ticker: DVN,   sector: energy}
+  - {ticker: OXY,   sector: energy}
+  - {ticker: VLO,   sector: energy}
+  - {ticker: F,     sector: consumer_discretionary}
+  - {ticker: GM,    sector: consumer_discretionary}
+  - {ticker: KSS,   sector: consumer_discretionary}
+  - {ticker: BBY,   sector: consumer_discretionary}
+  - {ticker: WHR,   sector: consumer_discretionary}
+  - {ticker: KHC,   sector: consumer_staples}
+  - {ticker: GIS,   sector: consumer_staples}
+  - {ticker: CAG,   sector: consumer_staples}
+  - {ticker: KR,    sector: consumer_staples}
+  - {ticker: ADM,   sector: consumer_staples}
+  - {ticker: DOW,   sector: materials}
+  - {ticker: LYB,   sector: materials}
+  - {ticker: NUE,   sector: materials}
+  - {ticker: MOS,   sector: materials}
+  - {ticker: UPS,   sector: industrials}
+  - {ticker: MMM,   sector: industrials}
+  - {ticker: EMR,   sector: industrials}
+  - {ticker: CMI,   sector: industrials}
+  - {ticker: PCAR,  sector: industrials}
+  - {ticker: T,     sector: communication}
+  - {ticker: VZ,    sector: communication}
+  - {ticker: CMCSA, sector: communication}
+  - {ticker: PARA,  sector: communication}
+  - {ticker: D,     sector: utilities}
+  - {ticker: SO,    sector: utilities}
+  - {ticker: EXC,   sector: utilities}

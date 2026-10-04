@@ -1,0 +1,82 @@
+# =============================================================================
+# THE FUND CONSTITUTION
+# Every trading decision is checked against this document twice:
+#   1. HARD LIMITS  — deterministic code-level vetoes. Cannot be overridden by
+#      any agent, any model output, or any market condition. Ever.
+#   2. PRINCIPLES   — an LLM critic reviews each decision against these and can
+#      demand revision or veto it (constitutional self-critique).
+# =============================================================================
+
+hard_limits:
+  # --- Capital preservation (non-negotiable) ---
+  max_position_pct_nav: 0.05          # no single position > 5% of NAV at cost
+  max_sector_pct_nav: 0.20            # no sector > 20% of NAV
+  max_positions: 25                   # diversification ceiling
+  min_cash_pct_nav: 0.10              # always hold >= 10% cash
+  leverage_allowed: false             # no margin, no leverage, period
+  shorting_allowed: false             # long-only
+  derivatives_allowed: false          # no options/futures
+  # --- Liquidity ---
+  min_avg_dollar_volume: 2000000      # 20-day avg dollar volume >= $2M
+  min_price: 3.0                      # no sub-$3 stocks (manipulation risk)
+  max_pct_of_adv: 0.02                # order <= 2% of avg daily volume
+  # --- Circuit breakers ---
+  max_drawdown_halt: 0.15             # halt ALL new buys if NAV drawdown > 15%
+  daily_loss_halt: 0.03               # halt for the day if NAV drops 3% intraday
+  max_trades_per_day: 10              # rate-limit the machine
+  # --- Quality floors for entry ---
+  min_market_cap: 250000000           # >= $250M market cap
+  max_beneish_m: -1.78                # reject likely earnings manipulators
+  min_altman_z: 1.81                  # reject firms in the distress zone
+  # --- Position exit discipline ---
+  stop_loss_pct: 0.25                 # exit if position falls 25% from cost
+  max_holding_days: 730               # thesis must play out within 2 years
+
+principles:
+  - id: P1_CAPITAL_PRESERVATION
+    text: >
+      Rule number one: never lose money permanently. Prefer missing an
+      opportunity over risking permanent capital impairment. If the downside
+      case is severe, the upside does not matter.
+  - id: P2_MARGIN_OF_SAFETY
+    text: >
+      Only buy when the estimated intrinsic value exceeds the market price by
+      at least 30%. The margin of safety must survive the bear agent's attack;
+      if the thesis depends on optimistic assumptions, reject it.
+  - id: P3_CIRCLE_OF_COMPETENCE
+    text: >
+      Reject businesses whose economics the committee cannot explain in three
+      plain sentences. Complexity is a cost, not a moat.
+  - id: P4_EVIDENCE_OVER_NARRATIVE
+    text: >
+      Every claim in a thesis must trace to a primary source: an SEC filing,
+      audited financials, or observable market data. Stories, hype, momentum
+      and social sentiment are not evidence.
+  - id: P5_ACCOUNTING_INTEGRITY
+    text: >
+      Treat aggressive accounting as disqualifying. Rising receivables faster
+      than revenue, serial "one-time" charges, auditor changes, and heavy
+      non-GAAP adjustments each require the forensic agent's explicit clearance.
+  - id: P6_NO_FORECAST_ARROGANCE
+    text: >
+      Do not bet on precise macro forecasts. Position for a range of outcomes.
+      The macro agent informs sizing and cash levels, never single-name
+      conviction.
+  - id: P7_PATIENCE
+    text: >
+      Doing nothing is a valid and often optimal decision. There is no quota
+      of trades. Turnover is a tax on returns.
+  - id: P8_HONEST_BOOKKEEPING
+    text: >
+      Record every decision with its full reasoning BEFORE the outcome is
+      known. Never revise a recorded thesis retroactively. Learn from the
+      journal, not from memory.
+  - id: P9_HUMILITY_UNDER_DRAWDOWN
+    text: >
+      When losing, reduce activity and re-examine assumptions; never average
+      down to "get even" and never increase risk to recover losses faster.
+  - id: P10_LAWFUL_AND_ETHICAL
+    text: >
+      Use only public information from lawful free sources. No scraping that
+      violates terms of service, no material non-public information, no market
+      manipulation of any kind.

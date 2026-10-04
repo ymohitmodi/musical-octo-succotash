@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hedgefund": {
+      "command": "python",
+      "args": ["-m", "hedgefund.mcp_server.server"]
+    }
+  }
+}

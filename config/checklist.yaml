@@ -1,0 +1,60 @@
+# The pre-buy checklist — the distillation of every previous disaster.
+# The PM must answer EVERY item with evidence before capital moves. Code
+# enforces: any critical item not answered "pass" => automatic reject.
+# (Munger/Pabrai practice: the checklist runs even when everyone is sure.)
+
+items:
+  - id: CL1_UNDERSTAND
+    critical: true
+    question: >
+      Can the business be explained in three plain sentences — what it sells,
+      who pays, and why they keep paying? (Circle of competence, P3)
+  - id: CL2_MARGIN
+    critical: true
+    question: >
+      Is the price at least 30% below a CONSERVATIVE intrinsic estimate, with
+      the method stated (owner earnings, EPV, or asset value — not multiple
+      expansion)?
+  - id: CL3_FORENSIC
+    critical: true
+    question: >
+      Did the forensic review clear the accounts: cash flow confirms earnings,
+      receivables/inventory in line with revenue, no auditor/CFO red flags,
+      Beneish M below -1.78?
+  - id: CL4_BALANCE_SHEET
+    critical: true
+    question: >
+      Does the balance sheet survive a two-year recession with no access to
+      capital markets (maturities, covenants, fixed costs vs liquidity)?
+  - id: CL5_BEAR_ENGAGED
+    critical: true
+    question: >
+      Has the bear case been restated in its STRONGEST form and rebutted with
+      evidence — not waved away? Quote the bear's best point and the rebuttal.
+  - id: CL6_TRAP_CHECK
+    critical: true
+    question: >
+      Why is this cheap, specifically — and is the reason cyclical/sentiment
+      (opportunity) rather than secular decline (trap)? What is the evidence
+      the market is WRONG, not early?
+  - id: CL7_DILUTION
+    critical: false
+    question: >
+      Is per-share value protected — stable or shrinking share count, no
+      serial dilution, stock comp under control?
+  - id: CL8_INCENTIVES
+    critical: false
+    question: >
+      Do management incentives align with shareholders (ownership, capital
+      allocation record, insider buying vs selling)?
+  - id: CL9_PREMORTEM
+    critical: true
+    question: >
+      Pre-mortem attached: the three most probable failure causes and the
+      observable kill-criteria for each. Is the position survivable at the
+      proposed size if the most likely failure occurs?
+  - id: CL10_PORTFOLIO_FIT
+    critical: false
+    question: >
+      Is this idea genuinely additive — not a correlated twin of an existing
+      position, and better than simply adding to the current best holding?
