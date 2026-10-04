@@ -43,6 +43,6 @@ description: Diagnose and fix problems with the AI hedge fund's 24/7 operation â
 - Fix configuration and environment, not strategy: never edit
   `config/constitution.yaml` hard limits as part of a "repair".
 - If tests are in doubt after a code change: `python -m unittest discover tests`
-  (27 offline tests must pass).
+  (64 offline tests must pass).
 - Trading halts (`halted_until`, drawdown breaker) are SAFETY features, not
   bugs â€” never clear them mechanically; explain why they fired instead.
