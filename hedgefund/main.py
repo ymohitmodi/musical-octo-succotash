@@ -34,7 +34,21 @@ def _setup_logging() -> None:
                   logging.FileHandler(logs / "hedgefund.log", encoding="utf-8")])
 
 
+def _ensure_utf8_output() -> None:
+    """Let the CLI print check marks / symbols even when stdout is redirected on Windows.
+
+    A redirected Windows stream (Task Scheduler, CI, ``> log.txt``) defaults to the legacy
+    code page (cp1252), which cannot encode characters such as \u2713 and \u2717 and would
+    crash the command. Reconfigure to UTF-8; unencodable characters degrade to '?'.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> None:
+    _ensure_utf8_output()
     _setup_logging()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "run"
     cfg = Config.load()
