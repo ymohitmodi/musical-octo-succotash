@@ -96,6 +96,7 @@ class TestConstitutionHardLimits(unittest.TestCase):
         self.state = {"halted_until": 0, "peak_nav": 1_500_000, "day_open_nav": 1_500_000}
 
     def tearDown(self):
+        self.db.close()   # Windows cannot delete a DB file that is still open
         self.tmp.cleanup()
 
     def test_clamps_oversized_position(self):
