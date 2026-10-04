@@ -27,6 +27,17 @@ three modern agentic-AI practices end to end:
 > after talking to a licensed advisor. The architecture manages a simulated
 > $1.5M by default (`FUND_CAPITAL_USD`).
 
+## At a glance
+
+| | |
+|---|---|
+| **Purpose** | A research testbed for *safe autonomy under money-like stakes*: how far can a multi-agent LLM committee go on deep-value research when every decision must pass a written constitution and code-enforced hard limits? **Paper-trading only — no brokerage code exists in this repo.** |
+| **Prerequisites** | Python 3.10+. Free data only (SEC EDGAR needs a contact email in the User-Agent — see `.env.example`). Optional: [Ollama](https://ollama.com) cloud key for the LLM committee; without one, `screen`, `backtest`, `doctor` and the whole test suite work offline. |
+| **Install** | `pip install -r requirements.txt` on **Windows 11, macOS or Linux**. The 24/7 watchdog is a Windows Task Scheduler script (`scripts/run_forever.ps1`); on macOS/Linux run `./scripts/setup.sh you@example.com` once, then `python -m hedgefund.main run` under `launchd` / `systemd` / `cron`. |
+| **Run** | `python -m hedgefund.main doctor` → `screen` → `once` → `dashboard` (`:8787`) · tests: `python -m unittest discover tests` |
+| **Benefits** | Free/open-source data and models · fail-closed design (a model error can only ever mean *no trade*) · append-only decision journal · everything auditable. |
+| **Status** | Research prototype. Not financial advice; no performance is claimed. See *Being realistic* below. |
+
 ---
 
 ## Architecture
@@ -172,7 +183,7 @@ carries survivorship bias — so judge the top-N *relative* to the benchmark,
 not the absolute CAGR. Reports land in `reports/backtest_*.md` and feed the
 dashboard's backtest panel.
 
-## The NYX benchmark: vs frontier models, vs PhDs, vs the index
+## Benchmarking: the cognitive battery and honest comparisons
 
 Run the **cognitive battery** to score your actual model chain on the fund's
 actual tasks (faithful extraction, refusing to fabricate, long-dossier
@@ -196,21 +207,20 @@ The honest comparative verdict this system is built around:
   risk, no redemptions, mechanized discipline) but the honest prior is
   uncertainty. That's why it paper-trades against SPY continuously: the NAV
   chart *is* the benchmark, and it will tell the truth either way.
-- **vs frontier models** (Claude Mythos-class): the reasoning gap is real but
-  bounded — frontier leads the hardest reasoning benchmarks by a few points
-  (e.g. ~94.6 vs ~91.2 GPQA Diamond, per
-  [LM Council](https://lmcouncil.ai/benchmarks) /
-  [llm-stats](https://llm-stats.com/)). NYX's architecture deliberately
-  minimizes what that gap can cost: models never compute (deterministic
-  quant), never bypass gates (fail-closed), never act alone (diverse
-  committee + believability weighting). Frontier IQ would improve judgment
-  at the margin; it would not change the rails.
-- **vs elite human analysts**: NYX wins on breadth, consistency, tirelessness
-  and discipline — it reads the 400th boring filing with full attention and
-  never skips the checklist at 2am. Humans (and human-plus-frontier-model
-  teams) win on scuttlebutt, management judgment, unstructured information
-  and creative inference. NYX is honest doctrine-ware for the first
-  category and does not pretend to the second.
+- **vs frontier models**: a gap on the hardest reasoning tasks is expected;
+  consult current public leaderboards (e.g. [LM Council](https://lmcouncil.ai/benchmarks))
+  for up-to-date figures rather than any number frozen here. NYX's architecture
+  deliberately minimizes what that gap can cost: models never compute
+  (deterministic quant), never bypass gates (fail-closed), never act alone
+  (diverse committee + believability weighting). A stronger model would improve
+  judgment at the margin; it would not change the rails.
+- **vs elite human analysts**: the system is designed to be strong on breadth,
+  consistency, tirelessness and discipline — it reads the 400th filing with full
+  attention and never skips the checklist at 2am — and makes **no claim** on
+  scuttlebutt, management judgment, unstructured information or creative
+  inference, where humans (and human-plus-frontier-model teams) are expected to
+  stay ahead. None of this is measured yet; the paper-trading NAV versus SPY is
+  the evidence to watch.
 
 ## Being realistic: what the research says, and how this fund is designed around it
 
@@ -276,3 +286,7 @@ tests/            offline unit tests (quant math, vetoes, evolution bounds)
 ```powershell
 python -m unittest discover tests
 ```
+
+## License
+
+MIT — see [`LICENSE`](LICENSE). Research software; not financial advice.
