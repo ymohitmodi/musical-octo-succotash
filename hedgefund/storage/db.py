@@ -147,6 +147,18 @@ class DB:
             self._local.conn = c
         return c
 
+    def close(self) -> None:
+        """Close this thread's connection (idempotent).
+
+        An open SQLite handle prevents the database file from being deleted or moved
+        on Windows, and closing the last WAL connection lets SQLite checkpoint and
+        remove its ``-wal``/``-shm`` side files. A later ``conn()`` call reopens.
+        """
+        c = getattr(self._local, "conn", None)
+        if c is not None:
+            c.close()
+            self._local.conn = None
+
     # ---- journal -----------------------------------------------------------
     def log_event(self, kind: str, payload: dict, ticker: str | None = None) -> None:
         with self.conn() as c:

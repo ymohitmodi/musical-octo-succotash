@@ -166,6 +166,7 @@ class TestEndToEnd(unittest.TestCase):
         self.pipe, self.llm, self.mkt = build_pipeline(self.tmp.name)
 
     def tearDown(self):
+        self.pipe.db.close()   # Windows cannot delete a DB file that is still open
         self.tmp.cleanup()
 
     def test_full_lifecycle(self):
